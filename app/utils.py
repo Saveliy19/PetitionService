@@ -7,8 +7,8 @@ db = DataBase(host, port, user, database, password)
 
 # метод для создания новой петиции в базе
 async def add_new_petition(*args):
-        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_ID, LATITUDE, LONGITUDE, HEADER) 
-                   VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID;'''
+        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_ID, LATITUDE, LONGITUDE, HEADER, REGION, CITY_NAME) 
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ID;'''
         petition_id = await db.insert_returning(query, *args)
         print(petition_id)
         return petition_id
@@ -35,6 +35,12 @@ async def like_petition_by_id(*args):
 # метод для получения ID и заголовка заявки по айди пользователя
 async def get_petitions_by_user_id(*args):
         query = '''SELECT ID, HEADER FROM PETITION WHERE PETITIONER_ID = $1;'''
+        result = await db.select_query(query, *args)
+        return result
+
+# метод для получения списка всех заявок в указанном городе
+async def get_petitions_by_city(*args):
+        query = '''SELECT ID, HEADER FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2;'''
         result = await db.select_query(query, *args)
         return result
 

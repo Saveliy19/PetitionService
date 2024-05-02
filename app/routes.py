@@ -3,9 +3,9 @@ import os
 from fastapi import APIRouter, HTTPException, status, File, UploadFile
 from typing import List
 
-from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData
+from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, City
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
-from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id
+from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city
 
 router = APIRouter()
 
@@ -19,7 +19,9 @@ async def make_petition(petition: NewPetition):
                                        petition.petitioner_id,
                                        petition.latitude,
                                        petition.longtitude,
-                                       petition.header)
+                                       petition.header,
+                                       petition.region,
+                                       petition.city_name)
         #if len(petition.photos) > 0:
             #await add_photos_to_petition(petition_id, petition.photos)
     except Exception as e:
@@ -56,6 +58,15 @@ async def get_petitions(user: UserInfo):
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
 
+# маршрут для получения списка заявок по названию города
+@router.post("/get_city_petitions")
+async def get_city_petitions(city: City):
+    try:
+        result = await get_petitions_by_city(city.region, city.name)
+        petitions = [PetitionWithHeader(id=r["id"], header=r["header"]) for r in result]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
 
 # маршрут для получения полных данных по заявке
 @router.post('/get_petition_data')
@@ -75,4 +86,6 @@ async def get_petition_data(petition: PetitionToGetData):
                         submission_time = info["submission_time"].strftime('%d.%m.%Y %H:%M'),
                         latitude = info["latitude"],
                         longitude = info["longitude"],
+                        region = info["region"],
+                        city_name = info["city_name"],
                         likes_count = likes_count), status.HTTP_200_OK

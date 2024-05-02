@@ -15,6 +15,8 @@ class NewPetition(BaseModel):
     latitude: float
     longtitude: float
     header: str
+    region: str
+    city_name: str
     #photos: List[Photo] = []
 
 # класс для обновления статуса заявки
@@ -57,3 +59,9 @@ class PetitionData(BaseModel):
     latitude: float
     longitude: float
     likes_count: int
+    region: str
+    city_name: str
+
+class City(BaseModel):
+    region: str
+    name: str
