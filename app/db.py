@@ -23,6 +23,13 @@ class DataBase:
         async with self.connection.transaction():
             result = await self.connection.fetch(query, *args)
         return result
+    
+    async def select_one(self, query, *args):
+        if not self.connection:
+            await self.connect()
+        async with self.connection.transaction():
+            result = await self.connection.fetchrow(query, *args)
+        return result
 
     async def exec_query(self, query, *args):
         if not self.connection:
