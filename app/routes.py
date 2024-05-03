@@ -1,11 +1,14 @@
 import os
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, status, File, UploadFile
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, City
+from app.models import SubjectForBriefAnalysis
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
-from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city
+from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city, get_brief_subject_analysis
 
 router = APIRouter()
 
@@ -72,8 +75,7 @@ async def get_city_petitions(city: City):
 @router.post('/get_petition_data')
 async def get_petition_data(petition: PetitionToGetData):
     try:
-        info = await get_full_info_by_petiton_id(petition.id)
-        likes_count = await count_likes_by_petition_id(petition.id)
+        info, likes_count = await asyncio.gather(get_full_info_by_petiton_id(petition.id), count_likes_by_petition_id(petition.id))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionData(id = info["id"], 
@@ -89,3 +91,13 @@ async def get_petition_data(petition: PetitionToGetData):
                         region = info["region"],
                         city_name = info["city_name"],
                         likes_count = likes_count), status.HTTP_200_OK
+
+
+# маршрут для получения краткой аналитики по населенному пункту
+@router.post("/get_brief_analysis")
+async def get_brief_analysis(subject: SubjectForBriefAnalysis):
+    try:
+        Info = await get_brief_subject_analysis(subject.type, subject.name, subject.period)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return Info, status.HTTP_200_OK

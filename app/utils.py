@@ -3,6 +3,8 @@ from app.db import DataBase
 
 from app.config import host, port, user, database, password, PHOTOS_DIRECTORY
 
+import asyncio
+
 db = DataBase(host, port, user, database, password)
 
 # метод для создания новой петиции в базе
@@ -57,6 +59,49 @@ async def count_likes_by_petition_id(*args):
         result = int((await db.select_one(query, *args))["count"])
         print(result)
         return result
+
+
+async def get_brief_subject_analysis(*args):
+        query1 = f'''SELECT IS_INITIATIVE, COUNT(*) 
+                     FROM PETITION
+                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                     AND {args[0]} = '{args[1]}'
+                     GROUP BY IS_INITIATIVE;'''
+        query2 = f'''SELECT CATEGORY FROM PETITION
+                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                     AND IS_INITIATIVE = 'f'
+                     AND {args[0]} = '{args[1]}'
+                     GROUP BY CATEGORY
+                     ORDER BY COUNT(*) DESC
+                     LIMIT 1;'''
+        query3 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решена' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
+                    FROM PETITION
+                    WHERE IS_INITIATIVE = 'f'
+                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                    AND {args[0]} = '{args[1]}';'''
+        query4 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрена' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
+                    FROM PETITION
+                    WHERE IS_INITIATIVE = 't'
+                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                    AND {args[0]} = '{args[1]}';'''
+        query5 = f'''SELECT CATEGORY FROM PETITION
+                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                     AND IS_INITIATIVE = 't'
+                     AND {args[0]} = '{args[1]}'
+                     GROUP BY CATEGORY
+                     ORDER BY COUNT(*) DESC
+                     LIMIT 1;'''
+        petitions, most_popular_petition, resolved_percent, accepted_percent, most_popular_initiative = await asyncio.gather(db.select_query(query1), 
+                                                                                                                             db.select_query(query2), 
+                                                                                                                             db.select_query(query3), 
+                                                                                                                             db.select_query(query4),
+                                                                                                                             db.select_query(query5))
+        return {"petitions_count" : petitions[0]["count"], 
+                "initiatives_count": petitions[1]["count"], 
+                "most_popular_petition": most_popular_petition[0]["category"], 
+                "most_popular_initiative": most_popular_initiative[0]["category"], 
+                "solved_percent": float(resolved_percent[0]["percent_resolved"]),
+                "accepted_percent": float(accepted_percent[0]["percent_resolved"])}
 
 async def add_photos_to_petition(petition_id, files):
         pass

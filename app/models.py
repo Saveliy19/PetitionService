@@ -65,3 +65,11 @@ class PetitionData(BaseModel):
 class City(BaseModel):
     region: str
     name: str
+
+class SubjectForBriefAnalysis(BaseModel):
+    type: str
+    name: str
+    period: str
+
+
+    
