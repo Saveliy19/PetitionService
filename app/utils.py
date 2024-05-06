@@ -9,8 +9,8 @@ db = DataBase(host, port, user, database, password)
 
 # метод для создания новой петиции в базе
 async def add_new_petition(*args):
-        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_ID, LATITUDE, LONGITUDE, HEADER, REGION, CITY_NAME) 
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ID;'''
+        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_ID, ADDRESS, HEADER, REGION, CITY_NAME) 
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID;'''
         petition_id = await db.insert_returning(query, *args)
         print(petition_id)
         return petition_id
@@ -42,7 +42,7 @@ async def get_petitions_by_user_id(*args):
 
 # метод для получения списка всех заявок в указанном городе
 async def get_petitions_by_city(*args):
-        query = '''SELECT ID, HEADER FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2;'''
+        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2 AND IS_INITIATIVE = 'f';'''
         result = await db.select_query(query, *args)
         return result
 
@@ -74,12 +74,12 @@ async def get_brief_subject_analysis(*args):
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
                      LIMIT 1;'''
-        query3 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решена' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
+        query3 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решено' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
                     FROM PETITION
                     WHERE IS_INITIATIVE = 'f'
                     AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
                     AND {args[0]} = '{args[1]}';'''
-        query4 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрена' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
+        query4 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрено' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
                     FROM PETITION
                     WHERE IS_INITIATIVE = 't'
                     AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'

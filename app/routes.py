@@ -20,8 +20,7 @@ async def make_petition(petition: NewPetition):
                                        petition.category,
                                        petition.petition_description,
                                        petition.petitioner_id,
-                                       petition.latitude,
-                                       petition.longtitude,
+                                       petition.address,
                                        petition.header,
                                        petition.region,
                                        petition.city_name)
@@ -66,7 +65,7 @@ async def get_petitions(user: UserInfo):
 async def get_city_petitions(city: City):
     try:
         result = await get_petitions_by_city(city.region, city.name)
-        petitions = [PetitionWithHeader(id=r["id"], header=r["header"]) for r in result]
+        petitions = [PetitionWithHeader(id=r["id"], header=r["header"], status=r["petition_status"], address=r["address"]) for r in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
@@ -98,6 +97,7 @@ async def get_petition_data(petition: PetitionToGetData):
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
     try:
         Info = await get_brief_subject_analysis(subject.type, subject.name, subject.period)
+        print(Info)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return Info, status.HTTP_200_OK

@@ -12,8 +12,7 @@ class NewPetition(BaseModel):
     category: str
     petition_description: str
     petitioner_id: int
-    latitude: float
-    longtitude: float
+    address: str
     header: str
     region: str
     city_name: str
@@ -37,6 +36,9 @@ class UserInfo(BaseModel):
 class PetitionWithHeader(BaseModel):
     id: int
     header: str
+    status: str
+    address: str
+
 
 # класс, используемый для передачи массива с краткой информацией по нескольким заявкам
 class PetitionsByUser(BaseModel):
@@ -56,8 +58,7 @@ class PetitionData(BaseModel):
     status: str
     petitioner_id: int
     submission_time: str
-    latitude: float
-    longitude: float
+    address: str
     likes_count: int
     region: str
     city_name: str
