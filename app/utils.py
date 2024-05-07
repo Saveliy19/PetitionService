@@ -42,7 +42,7 @@ async def get_petitions_by_user_id(*args):
 
 # метод для получения списка всех заявок в указанном городе
 async def get_petitions_by_city(*args):
-        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2 AND IS_INITIATIVE = 'f';'''
+        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2 AND IS_INITIATIVE = $3;'''
         result = await db.select_query(query, *args)
         return result
 

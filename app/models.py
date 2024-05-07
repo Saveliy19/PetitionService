@@ -66,6 +66,7 @@ class PetitionData(BaseModel):
 class City(BaseModel):
     region: str
     name: str
+    is_initiative: bool
 
 class SubjectForBriefAnalysis(BaseModel):
     type: str

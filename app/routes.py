@@ -55,7 +55,7 @@ async def like_petition(like: Like):
 async def get_petitions(user: UserInfo):
     try:
         result = await get_petitions_by_user_id(user.id)
-        petitions = [PetitionWithHeader(id=r["id"], header=r["header"]) for r in result]
+        petitions = [PetitionWithHeader(id=r["id"], header=r["header"], status=r["petition_status"], address=r["address"]) for r in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
@@ -64,7 +64,7 @@ async def get_petitions(user: UserInfo):
 @router.post("/get_city_petitions")
 async def get_city_petitions(city: City):
     try:
-        result = await get_petitions_by_city(city.region, city.name)
+        result = await get_petitions_by_city(city.region, city.name, city.is_initiative)
         petitions = [PetitionWithHeader(id=r["id"], header=r["header"], status=r["petition_status"], address=r["address"]) for r in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -85,8 +85,7 @@ async def get_petition_data(petition: PetitionToGetData):
                         status = info["petition_status"],
                         petitioner_id = info["petitioner_id"],
                         submission_time = info["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                        latitude = info["latitude"],
-                        longitude = info["longitude"],
+                        address = info["address"],
                         region = info["region"],
                         city_name = info["city_name"],
                         likes_count = likes_count), status.HTTP_200_OK
