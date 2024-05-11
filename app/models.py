@@ -41,6 +41,7 @@ class PetitionWithHeader(BaseModel):
     header: str
     status: str
     address: str
+    date: str
 
 
 # класс, используемый для передачи массива с краткой информацией по нескольким заявкам
