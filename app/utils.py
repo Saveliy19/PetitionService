@@ -62,7 +62,7 @@ async def get_petitions_by_city(*args):
 
 # метод для получения списка всех заявок для администрирования
 async def get_admin_petitions(*args):
-        query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
+        query = '''SELECT p.ID, p.IS_INITIATIVE, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
                 WHERE p.REGION = $1 

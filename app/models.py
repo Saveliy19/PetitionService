@@ -49,6 +49,13 @@ class PetitionWithHeader(BaseModel):
 class PetitionsByUser(BaseModel):
     petitions: List[PetitionWithHeader]
 
+
+class AdminPetition(PetitionWithHeader):
+    type: str
+
+class AdminPetitions(BaseModel):
+    petitions: List[AdminPetition]
+
 # класс для получения данных о заявке, по которой нужно вернуть информацию
 class PetitionToGetData(BaseModel):
     id: int

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, CityWithType
-from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City
+from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City, AdminPetition, AdminPetitions
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
 from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
 from app.utils import get_admin_petitions
@@ -101,15 +101,16 @@ async def get_city_petitions(city: CityWithType):
 async def get_admins_city_petitions(city: City):
     try:
         result = await get_admin_petitions(city.region, city.name)
-        petitions = [PetitionWithHeader(id=r["id"], 
+        petitions = [AdminPetition(id=r["id"],
                                         header=r["header"], 
                                         status=r["petition_status"], 
                                         address=r["address"], 
                                         date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                                        likes=r["likes_count"]) for r in result]
+                                        likes=r["likes_count"],
+                                        type = 'Жалоба' if r["is_initiative"] == False else 'Инициатива') for r in result]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
+    return AdminPetitions(petitions = petitions), status.HTTP_200_OK
 
 # маршрут для получения полных данных по заявке
 @router.post('/get_petition_data')
