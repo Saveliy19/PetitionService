@@ -59,6 +59,19 @@ class DataBase:
             except asyncpg.PostgresError as e:
                 print(f'Error executing query: {e}')
 
+    async def exec_many_query(self, query_list):
+        if not self.pool:
+            await self.connect()
+        async with self.pool.acquire() as connection:
+            try:
+                async with connection.transaction():
+                    for query in query_list:
+                        await connection.execute(query)
+            except asyncpg.PostgresError as e:
+                print(f'Error executing query: {e}')
+                return False
+        return True
+
     async def insert_returning(self, query, *args):
         if not self.pool:
             await self.connect()

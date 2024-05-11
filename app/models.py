@@ -21,7 +21,10 @@ class NewPetition(BaseModel):
 # класс для обновления статуса заявки
 class PetitionStatus(BaseModel):
     id: int
+    admin_id: int
     status: str
+    comment: str
+    
 
 # класс для установки или отмены лайка
 class Like(BaseModel):
@@ -74,4 +77,6 @@ class SubjectForBriefAnalysis(BaseModel):
     period: str
 
 
-    
+class PetitionIdWithUserId(BaseModel):
+    petition_id: int
+    user_id: int

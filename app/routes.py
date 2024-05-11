@@ -6,9 +6,9 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, City
-from app.models import SubjectForBriefAnalysis
+from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
-from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city, get_brief_subject_analysis
+from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
 
 router = APIRouter()
 
@@ -34,11 +34,26 @@ async def make_petition(petition: NewPetition):
 @router.post("/update_petition_status")
 async def update_petition_status(petition: PetitionStatus):
     try:
-        await update_status_of_petition_by_id(petition.status,
-                                              petition.id)
+        result = await update_status_of_petition_by_id(petition.status,
+                                              petition.id,
+                                              petition.admin_id,
+                                              petition.comment)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return status.HTTP_200_OK
+    if result:
+        return status.HTTP_200_OK
+    else:
+        return status.HTTP_500_INTERNAL_SERVER_ERROR
+
+# маршрут для проверки лайка
+@router.post("/check_like")
+async def check_like(content: Like):
+    try:
+        result = await check_user_like(content.petition_id,
+                                       content.user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"result": result}
 
 # маршрут для добавления лайка петиции
 @router.post("/like_petition")

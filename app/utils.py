@@ -16,11 +16,13 @@ async def add_new_petition(*args):
         return petition_id
 
 # метод для обновления статуса имеющейся петиции
-async def update_status_of_petition_by_id(*args):
-        query = '''UPDATE PETITION
-                   SET PETITION_STATUS = $1
-                   WHERE ID = $2;'''
-        await db.exec_query(query, *args)
+async def update_status_of_petition_by_id(status, id, admin_id, comment):
+        query1 = f'''UPDATE PETITION
+                   SET PETITION_STATUS = '{status}'
+                   WHERE ID = {id};'''
+        query2 = f'''INSERT INTO COMMENTS (USER_ID, COMMENT_DESCRIPTION) VALUES ({admin_id}, '{comment}');'''
+        result = await db.exec_many_query([query1, query2])
+        return result
 
 # метод для лайка петиции или его отмены
 async def like_petition_by_id(*args):
@@ -36,7 +38,7 @@ async def like_petition_by_id(*args):
 
 # метод для получения ID и заголовка заявки по айди пользователя
 async def get_petitions_by_user_id(*args):
-        query = '''SELECT ID, HEADER FROM PETITION WHERE PETITIONER_ID = $1;'''
+        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS FROM PETITION WHERE PETITIONER_ID = $1;'''
         result = await db.select_query(query, *args)
         return result
 
@@ -102,6 +104,13 @@ async def get_brief_subject_analysis(*args):
                 "most_popular_initiative": most_popular_initiative[0]["category"], 
                 "solved_percent": float(resolved_percent[0]["percent_resolved"]),
                 "accepted_percent": float(accepted_percent[0]["percent_resolved"])}
+
+async def check_user_like(*args):
+        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
+        existing_like = await db.select_one(query, *args)
+        if not existing_like:
+                return False
+        return True
 
 async def add_photos_to_petition(petition_id, files):
         pass
