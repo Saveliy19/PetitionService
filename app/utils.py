@@ -38,13 +38,36 @@ async def like_petition_by_id(*args):
 
 # метод для получения ID и заголовка заявки по айди пользователя
 async def get_petitions_by_user_id(*args):
-        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS, SUBMISSION_TIME FROM PETITION WHERE PETITIONER_ID = $1;'''
+        query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
+                FROM petition p
+                LEFT JOIN likes l ON p.ID = l.PETITION_ID
+                WHERE p.PETITIONER_ID = $1 
+                GROUP BY p.ID;'''
         result = await db.select_query(query, *args)
         return result
 
 # метод для получения списка всех заявок в указанном городе
 async def get_petitions_by_city(*args):
-        query = '''SELECT ID, HEADER, PETITION_STATUS, ADDRESS, SUBMISSION_TIME FROM PETITION WHERE REGION = $1 AND CITY_NAME = $2 AND IS_INITIATIVE = $3 AND PETITION_STATUS != 'ожидает модерации';'''
+        query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
+                FROM petition p
+                LEFT JOIN likes l ON p.ID = l.PETITION_ID
+                WHERE p.REGION = $1 
+                AND p.CITY_NAME = $2 
+                AND p.PETITION_STATUS != 'ожидает модерации'
+                AND p.IS_INITIATIVE = $3
+                GROUP BY p.ID;
+                '''
+        result = await db.select_query(query, *args)
+        return result
+
+# метод для получения списка всех заявок для администрирования
+async def get_admin_petitions(*args):
+        query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
+                FROM petition p
+                LEFT JOIN likes l ON p.ID = l.PETITION_ID
+                WHERE p.REGION = $1 
+                AND p.CITY_NAME = $2
+                GROUP BY p.ID;'''
         result = await db.select_query(query, *args)
         return result
 

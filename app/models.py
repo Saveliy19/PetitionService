@@ -42,6 +42,7 @@ class PetitionWithHeader(BaseModel):
     status: str
     address: str
     date: str
+    likes: int
 
 
 # класс, используемый для передачи массива с краткой информацией по нескольким заявкам
@@ -70,6 +71,8 @@ class PetitionData(BaseModel):
 class City(BaseModel):
     region: str
     name: str
+
+class CityWithType(City):
     is_initiative: bool
 
 class SubjectForBriefAnalysis(BaseModel):
