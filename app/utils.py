@@ -20,7 +20,7 @@ async def update_status_of_petition_by_id(status, id, admin_id, comment):
         query1 = f'''UPDATE PETITION
                    SET PETITION_STATUS = '{status}'
                    WHERE ID = {id};'''
-        query2 = f'''INSERT INTO COMMENTS (USER_ID, COMMENT_DESCRIPTION) VALUES ({admin_id}, '{comment}');'''
+        query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION) VALUES ({id}, {admin_id}, '{comment}');'''
         result = await db.exec_many_query([query1, query2])
         return result
 
