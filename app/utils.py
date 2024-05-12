@@ -73,16 +73,20 @@ async def get_admin_petitions(*args):
 
 # метод для получения полной информации по заявке по ее айди
 async def get_full_info_by_petiton_id(*args):
-        query = '''SELECT * FROM PETITION WHERE ID = $1;'''
+        
+        query = '''SELECT p.*, COUNT(l.petition_id) AS likes_count
+                FROM petition p
+                LEFT JOIN likes l ON p.ID = l.PETITION_ID
+                WHERE p.ID = $1
+                GROUP BY p.ID;'''
         result = await db.select_one(query, *args)
         print(result)
         return result
 
 # метод для получения количества лайков на петиции по ее айди
-async def count_likes_by_petition_id(*args):
-        query = '''SELECT COUNT(*) FROM LIKES WHERE PETITION_ID = $1;'''
-        result = int((await db.select_one(query, *args))["count"])
-        print(result)
+async def get_comments_by_petition_id(*args):
+        query = '''SELECT SUBMISSION_TIME, COMMENT_DESCRIPTION FROM COMMENTS WHERE PETITION_ID = $1;'''
+        result = await db.select_query(query, *args)
         return result
 
 

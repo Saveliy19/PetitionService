@@ -6,9 +6,9 @@ from fastapi import APIRouter, HTTPException, status, File, UploadFile
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, CityWithType
-from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City, AdminPetition, AdminPetitions
+from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City, AdminPetition, AdminPetitions, Comment
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
-from app.utils import get_full_info_by_petiton_id, count_likes_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
+from app.utils import get_full_info_by_petiton_id, get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
 from app.utils import get_admin_petitions
 
 router = APIRouter()
@@ -116,7 +116,8 @@ async def get_admins_city_petitions(city: City):
 @router.post('/get_petition_data')
 async def get_petition_data(petition: PetitionToGetData):
     try:
-        info, likes_count = await asyncio.gather(get_full_info_by_petiton_id(petition.id), count_likes_by_petition_id(petition.id))
+        info, comments = await asyncio.gather(get_full_info_by_petiton_id(petition.id), get_comments_by_petition_id(petition.id))
+        output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionData(id = info["id"], 
@@ -130,7 +131,8 @@ async def get_petition_data(petition: PetitionToGetData):
                         address = info["address"],
                         region = info["region"],
                         city_name = info["city_name"],
-                        likes_count = likes_count), status.HTTP_200_OK
+                        likes_count = info["likes_count"],
+                        comments = output_comments), status.HTTP_200_OK
 
 
 # маршрут для получения краткой аналитики по населенному пункту

@@ -60,6 +60,10 @@ class AdminPetitions(BaseModel):
 class PetitionToGetData(BaseModel):
     id: int
 
+class Comment(BaseModel):
+    date: str
+    data: str
+
 # класс для возврата полной информации по заявке
 class PetitionData(BaseModel):
     id: int
@@ -74,6 +78,7 @@ class PetitionData(BaseModel):
     likes_count: int
     region: str
     city_name: str
+    comments: List[Comment]
 
 class City(BaseModel):
     region: str
