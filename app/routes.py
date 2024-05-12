@@ -3,13 +3,14 @@ import os
 import asyncio
 
 from fastapi import APIRouter, HTTPException, status, File, UploadFile
+from fastapi.responses import FileResponse
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, CityWithType
 from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City, AdminPetition, AdminPetitions, Comment
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
 from app.utils import get_full_info_by_petiton_id, get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
-from app.utils import get_admin_petitions
+from app.utils import get_admin_petitions, get_photos_by_petition_id
 
 router = APIRouter()
 
@@ -117,8 +118,11 @@ async def get_admins_city_petitions(city: City):
 @router.post('/get_petition_data')
 async def get_petition_data(petition: PetitionToGetData):
     try:
-        info, comments = await asyncio.gather(get_full_info_by_petiton_id(petition.id), get_comments_by_petition_id(petition.id))
+        info, comments, photos = await asyncio.gather(get_full_info_by_petiton_id(petition.id),
+                                                      get_comments_by_petition_id(petition.id),
+                                                      get_photos_by_petition_id(petition.id))
         output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
+        print(photos)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return PetitionData(id = info["id"], 
@@ -133,7 +137,12 @@ async def get_petition_data(petition: PetitionToGetData):
                         region = info["region"],
                         city_name = info["city_name"],
                         likes_count = info["likes_count"],
-                        comments = output_comments), status.HTTP_200_OK
+                        comments = output_comments,
+                        photos = photos), status.HTTP_200_OK
+
+@router.get("/images/{image_path:path}")
+async def get_image(image_path: str):
+    return FileResponse(image_path)
 
 
 # маршрут для получения краткой аналитики по населенному пункту

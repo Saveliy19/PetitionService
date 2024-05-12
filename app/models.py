@@ -79,6 +79,7 @@ class PetitionData(BaseModel):
     region: str
     city_name: str
     comments: List[Comment]
+    photos: List[str]
 
 class City(BaseModel):
     region: str

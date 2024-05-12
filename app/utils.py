@@ -141,10 +141,20 @@ async def check_user_like(*args):
         return True
 
 async def add_photos_to_petition(petition_id, photos):
-        os.mkdir(PHOTOS_DIRECTORY + f"{petition_id}")
+        folder_path = PHOTOS_DIRECTORY + f"{petition_id}"
+        os.mkdir(folder_path)
         for p in photos:
                 with open(PHOTOS_DIRECTORY + f'{petition_id}/{p.filename}', 'wb') as f:
                         f.write(base64.b64decode(p.content))
 
-        # добавить сохранение path в базу данных
+        query = f'''INSERT INTO PHOTO_FOLDER (PETITION_ID, FOLDER_PATH) VALUES ({petition_id}, '{folder_path}');'''
+        await db.exec_query(query)
         
+async def get_photos_by_petition_id(petition_id):
+        photos = []
+        query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = {petition_id};'''
+        folder_path = (await db.select_one(query))["folder_path"]
+        for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                photos.append('http://127.0.0.1:8002/images/' +file_path)
+        return photos
