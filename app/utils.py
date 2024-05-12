@@ -2,6 +2,7 @@ import os
 from app.db import DataBase
 
 from app.config import host, port, user, database, password, PHOTOS_DIRECTORY
+import base64
 
 import asyncio
 
@@ -139,5 +140,11 @@ async def check_user_like(*args):
                 return False
         return True
 
-async def add_photos_to_petition(petition_id, files):
-        pass
+async def add_photos_to_petition(petition_id, photos):
+        os.mkdir(PHOTOS_DIRECTORY + f"{petition_id}")
+        for p in photos:
+                with open(PHOTOS_DIRECTORY + f'{petition_id}/{p.filename}', 'wb') as f:
+                        f.write(base64.b64decode(p.content))
+
+        # добавить сохранение path в базу данных
+        

@@ -4,7 +4,7 @@ from typing import List
 
 class Photo(BaseModel):
     filename: str
-    contents: bytes
+    content: str
 
 # класс для создания новой заявки
 class NewPetition(BaseModel):
@@ -16,7 +16,7 @@ class NewPetition(BaseModel):
     header: str
     region: str
     city_name: str
-    #photos: List[Photo] = []
+    photos: List[Photo]
 
 # класс для обновления статуса заявки
 class PetitionStatus(BaseModel):

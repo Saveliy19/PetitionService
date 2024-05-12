@@ -25,10 +25,11 @@ async def make_petition(petition: NewPetition):
                                        petition.header,
                                        petition.region,
                                        petition.city_name)
-        #if len(petition.photos) > 0:
-            #await add_photos_to_petition(petition_id, petition.photos)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    if len(petition.photos) > 0:
+            await add_photos_to_petition(petition_id, petition.photos)
     return {"petition_id": f"{petition_id}"}, status.HTTP_201_CREATED
 
 # маршрут для обновления статуса заявки
