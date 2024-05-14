@@ -10,7 +10,7 @@ db = DataBase(host, port, user, database, password)
 
 # метод для создания новой петиции в базе
 async def add_new_petition(*args):
-        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_ID, ADDRESS, HEADER, REGION, CITY_NAME) 
+        query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_EMAIL, ADDRESS, HEADER, REGION, CITY_NAME) 
                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID;'''
         petition_id = await db.insert_returning(query, *args)
         print(petition_id)
@@ -25,6 +25,13 @@ async def update_status_of_petition_by_id(status, id, admin_id, comment):
         result = await db.exec_many_query([query1, query2])
         return result
 
+async def get_petitioner_email_by_petition_id(petition_id):
+        query = f'''SELECT PETITIONER_EMAIL 
+                    FROM PETITION
+                    WHERE ID = {petition_id}'''
+        email = await db.select_one(query)
+        return email["petitioner_email"]
+
 # метод для лайка петиции или его отмены
 async def like_petition_by_id(*args):
         query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
@@ -38,11 +45,11 @@ async def like_petition_by_id(*args):
                 await db.exec_query(query, *args)
 
 # метод для получения ID и заголовка заявки по айди пользователя
-async def get_petitions_by_user_id(*args):
+async def get_petitions_by_user_email(*args):
         query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
-                WHERE p.PETITIONER_ID = $1 
+                WHERE p.PETITIONER_EMAIL = $1 
                 GROUP BY p.ID;'''
         result = await db.select_query(query, *args)
         return result

@@ -7,10 +7,10 @@ from fastapi.responses import FileResponse
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, CityWithType
-from app.models import SubjectForBriefAnalysis, PetitionIdWithUserId, City, AdminPetition, AdminPetitions, Comment
-from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_id
+from app.models import SubjectForBriefAnalysis,  City, AdminPetition, AdminPetitions, Comment
+from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_email
 from app.utils import get_full_info_by_petiton_id, get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
-from app.utils import get_admin_petitions, get_photos_by_petition_id
+from app.utils import get_admin_petitions, get_photos_by_petition_id, get_petitioner_email_by_petition_id
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def make_petition(petition: NewPetition):
         petition_id = await add_new_petition(petition.is_initiative,
                                        petition.category,
                                        petition.petition_description,
-                                       petition.petitioner_id,
+                                       petition.petitioner_email,
                                        petition.address,
                                        petition.header,
                                        petition.region,
@@ -36,15 +36,16 @@ async def make_petition(petition: NewPetition):
 # маршрут для обновления статуса заявки
 @router.post("/update_petition_status")
 async def update_petition_status(petition: PetitionStatus):
-    try:
-        result = await update_status_of_petition_by_id(petition.status,
-                                              petition.id,
-                                              petition.admin_id,
-                                              petition.comment)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    #try:
+    result, petitioner_email = await asyncio.gather(update_status_of_petition_by_id(petition.status,
+                                            petition.id,
+                                            petition.admin_id,
+                                            petition.comment),
+                                            get_petitioner_email_by_petition_id(petition.id))
+    #except Exception as e:
+    #    raise HTTPException(status_code=500, detail=str(e))
     if result:
-        return status.HTTP_200_OK
+        return {"petitioner_email": petitioner_email}, status.HTTP_200_OK
     else:
         return status.HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -71,16 +72,16 @@ async def like_petition(like: Like):
 # маршрут для получения списка заявок по id  пользователя
 @router.post("/get_petitions")
 async def get_petitions(user: UserInfo):
-    #try:
-    result = await get_petitions_by_user_id(user.id)
-    petitions = [PetitionWithHeader(id=r["id"], 
-                                    header=r["header"], 
-                                    status=r["petition_status"], 
-                                    address=r["address"], 
-                                    date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                                    likes = r["likes_count"]) for r in result]
-    #except Exception as e:
-       #raise HTTPException(status_code=500, detail=str(e))
+    try:
+        result = await get_petitions_by_user_email(user.email)
+        petitions = [PetitionWithHeader(id=r["id"], 
+                                        header=r["header"], 
+                                        status=r["petition_status"], 
+                                        address=r["address"], 
+                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
+                                        likes = r["likes_count"]) for r in result]
+    except Exception as e:
+       raise HTTPException(status_code=500, detail=str(e))
     return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
 
 # маршрут для получения списка заявок по названию города
@@ -131,7 +132,7 @@ async def get_petition_data(petition: PetitionToGetData):
                         category = info["category"],
                         description = info["petition_description"],
                         status = info["petition_status"],
-                        petitioner_id = info["petitioner_id"],
+                        petitioner_email = info["petitioner_email"],
                         submission_time = info["submission_time"].strftime('%d.%m.%Y %H:%M'),
                         address = info["address"],
                         region = info["region"],

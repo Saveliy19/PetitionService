@@ -11,7 +11,7 @@ class NewPetition(BaseModel):
     is_initiative: bool
     category: str
     petition_description: str
-    petitioner_id: int
+    petitioner_email: str
     address: str
     header: str
     region: str
@@ -33,7 +33,7 @@ class Like(BaseModel):
 
 # класс для получения id пользователя от шлюза
 class UserInfo(BaseModel):
-    id: int
+    email: str
 
 # класс с краткой информации о петиции
 class PetitionWithHeader(BaseModel):
@@ -72,7 +72,7 @@ class PetitionData(BaseModel):
     category: str
     description: str
     status: str
-    petitioner_id: int
+    petitioner_email: str
     submission_time: str
     address: str
     likes_count: int
@@ -92,8 +92,3 @@ class SubjectForBriefAnalysis(BaseModel):
     type: str
     name: str
     period: str
-
-
-class PetitionIdWithUserId(BaseModel):
-    petition_id: int
-    user_id: int
