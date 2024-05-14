@@ -92,3 +92,10 @@ class SubjectForBriefAnalysis(BaseModel):
     type: str
     name: str
     period: str
+
+class RegionForDetailedAnalysis(BaseModel):
+    region_name: str
+    city_name: str
+    start_time: str
+    end_time: str
+    rows_count: int

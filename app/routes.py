@@ -7,10 +7,10 @@ from fastapi.responses import FileResponse
 from typing import List
 
 from app.models import NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, PetitionToGetData, PetitionData, CityWithType
-from app.models import SubjectForBriefAnalysis,  City, AdminPetition, AdminPetitions, Comment
+from app.models import SubjectForBriefAnalysis,  City, AdminPetition, AdminPetitions, Comment, RegionForDetailedAnalysis
 from app.utils import add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, like_petition_by_id, get_petitions_by_user_email
 from app.utils import get_full_info_by_petiton_id, get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, check_user_like
-from app.utils import get_admin_petitions, get_photos_by_petition_id, get_petitioner_email_by_petition_id
+from app.utils import get_admin_petitions, get_photos_by_petition_id, get_petitioner_email_by_petition_id, get_full_statistics
 
 router = APIRouter()
 
@@ -151,6 +151,19 @@ async def get_image(image_path: str):
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
     try:
         Info = await get_brief_subject_analysis(subject.type, subject.name, subject.period)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return Info, status.HTTP_200_OK
+
+#  маршрут для получения подробного анализа
+@router.post("/get_detailed_analysis")
+async def get_brief_analysis(subject: RegionForDetailedAnalysis):
+    try:
+        Info = await get_full_statistics(subject.region_name, 
+                                         subject.city_name, 
+                                         subject.start_time, 
+                                         subject.end_time, 
+                                         subject.rows_count)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return Info, status.HTTP_200_OK
