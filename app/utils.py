@@ -111,16 +111,26 @@ async def get_brief_subject_analysis(*args):
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
                      LIMIT 1;'''
-        query3 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решено' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
-                    FROM PETITION
-                    WHERE IS_INITIATIVE = 'f'
-                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                    AND {args[0]} = '{args[1]}';'''
-        query4 = f'''SELECT ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрено' THEN 1 END)::numeric / COUNT(*)) * 100, 1) AS percent_resolved
-                    FROM PETITION
-                    WHERE IS_INITIATIVE = 't'
-                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                    AND {args[0]} = '{args[1]}';'''
+        query3 = f'''SELECT 
+                        CASE 
+                        WHEN COUNT(*) > 0 THEN ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решено' THEN 1 END)::numeric / COUNT(*)) * 100, 1)
+                        ELSE 0
+                        END AS percent_resolved
+                FROM PETITION
+                WHERE IS_INITIATIVE = 'f'
+                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                AND {args[0]} = '{args[1]}';'''
+
+        query4 = f'''SELECT 
+                        CASE 
+                        WHEN COUNT(*) > 0 THEN ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрено' THEN 1 END)::numeric / COUNT(*)) * 100, 1)
+                        ELSE 0
+                        END AS percent_resolved
+                FROM PETITION
+                WHERE IS_INITIATIVE = 't'
+                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                AND {args[0]} = '{args[1]}';'''
+
         query5 = f'''SELECT CATEGORY FROM PETITION
                      WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
                      AND IS_INITIATIVE = 't'
@@ -133,10 +143,33 @@ async def get_brief_subject_analysis(*args):
                                                                                                                              db.select_query(query3), 
                                                                                                                              db.select_query(query4),
                                                                                                                              db.select_query(query5))
-        return {"petitions_count" : petitions[0]["count"], 
-                "initiatives_count": petitions[1]["count"], 
-                "most_popular_petition": most_popular_petition[0]["category"], 
-                "most_popular_initiative": most_popular_initiative[0]["category"], 
+        print(petitions)
+        if len(petitions) == 0:
+                petitions_count, initiatives_count = 0, 0
+        elif len(petitions) == 1 and petitions[0]["is_initiative"] == 'True':
+                initiatives_count = petitions[0]["count"]
+                petitions_count = 0
+        elif len(petitions) == 1 and petitions[0]["is_initiative"] == 'False':
+                petitions_count = petitions[0]["count"]
+                initiatives_count = 0
+        else:
+                petitions_count = petitions[0]["count"]
+                initiatives_count = petitions[1]["count"]
+
+        if len(most_popular_initiative) != 0:
+                most_popular_init = most_popular_initiative[0]["category"]
+        else:
+                most_popular_init = 'Пока нет инициатив'
+
+        if len(most_popular_petition) != 0:
+                most_popular_pet = most_popular_petition[0]["category"]
+        else:
+                most_popular_pet = 'Пока нет жалоб'
+
+        return {"petitions_count" : petitions_count, 
+                "initiatives_count": initiatives_count, 
+                "most_popular_petition": most_popular_pet, 
+                "most_popular_initiative": most_popular_init, 
                 "solved_percent": float(resolved_percent[0]["percent_resolved"]),
                 "accepted_percent": float(accepted_percent[0]["percent_resolved"])}
 

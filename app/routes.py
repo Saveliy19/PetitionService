@@ -151,7 +151,6 @@ async def get_image(image_path: str):
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
     try:
         Info = await get_brief_subject_analysis(subject.type, subject.name, subject.period)
-        print(Info)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return Info, status.HTTP_200_OK
