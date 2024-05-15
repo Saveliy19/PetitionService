@@ -160,10 +160,10 @@ async def get_brief_analysis(subject: SubjectForBriefAnalysis):
 async def get_brief_analysis(subject: RegionForDetailedAnalysis):
     try:
         Info = await get_full_statistics(subject.region_name, 
-                                         subject.city_name, 
-                                         subject.start_time, 
-                                         subject.end_time, 
-                                         subject.rows_count)
+                                            subject.city_name, 
+                                            subject.start_time, 
+                                            subject.end_time, 
+                                            subject.rows_count)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+       raise HTTPException(status_code=500, detail=str(e))
     return Info, status.HTTP_200_OK
