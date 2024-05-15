@@ -220,19 +220,23 @@ async def get_full_statistics(region_name, city_name, start_time, end_time, rows
                                       AND IS_INITIATIVE = TRUE
                                       GROUP BY CATEGORY;'''
         
-        init_count_per_day_query = f'''SELECT DATE(SUBMISSION_TIME) AS DAY, COUNT(*) AS INITIATIVES_COUNT
-                                        FROM PETITION
-                                        WHERE IS_INITIATIVE = TRUE AND CITY_NAME = '{city_name}'
-                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
-                                        GROUP BY DATE(SUBMISSION_TIME)
+        init_count_per_day_query = f'''SELECT DATE(dates.d) AS DAY, COUNT(PETITION.SUBMISSION_TIME) AS INITIATIVES_COUNT
+                                        FROM GENERATE_SERIES('{start_time}'::TIMESTAMP, '{end_time}'::TIMESTAMP, '1 day') AS dates(d)
+                                        LEFT JOIN PETITION ON DATE(PETITION.SUBMISSION_TIME) = DATE(dates.d)
+                                        AND PETITION.IS_INITIATIVE = TRUE
+                                        AND PETITION.CITY_NAME = '{city_name}'
+                                        WHERE DATE(dates.d) BETWEEN '{start_time}' AND '{end_time}'
+                                        GROUP BY DATE(dates.d)
                                         ORDER BY DAY;
                                         '''
         
-        comp_count_per_day_query = f'''SELECT DATE(SUBMISSION_TIME) AS DAY, COUNT(*) AS COMPLAINTS_COUNT
-                                        FROM PETITION
-                                        WHERE IS_INITIATIVE = FALSE AND CITY_NAME = '{city_name}'
-                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
-                                        GROUP BY DATE(SUBMISSION_TIME)
+        comp_count_per_day_query = f'''SELECT DATE(dates.d) AS DAY, COUNT(PETITION.SUBMISSION_TIME) AS COMPLAINTS_COUNT
+                                        FROM GENERATE_SERIES('{start_time}'::TIMESTAMP, '{end_time}'::TIMESTAMP, '1 day') AS dates(d)
+                                        LEFT JOIN PETITION ON DATE(PETITION.SUBMISSION_TIME) = DATE(dates.d)
+                                        AND PETITION.IS_INITIATIVE = FALSE
+                                        AND PETITION.CITY_NAME = '{city_name}'
+                                        WHERE DATE(dates.d) BETWEEN '{start_time}' AND '{end_time}'
+                                        GROUP BY DATE(dates.d)
                                         ORDER BY DAY;
                                         '''
 
