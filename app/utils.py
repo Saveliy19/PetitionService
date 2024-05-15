@@ -174,37 +174,67 @@ async def get_brief_subject_analysis(*args):
                 "accepted_percent": float(accepted_percent[0]["percent_resolved"])}
 
 async def get_full_statistics(region_name, city_name, start_time, end_time, rows_count):
-        count_per_category_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
+        count_per_category_city_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
                                       FROM PETITION
                                       WHERE REGION = '{region_name}' AND CITY_NAME = '{city_name}'
-                                      AND (SUBMISSION_TIME BETWEEN {start_time} AND {end_time})
+                                      AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
                                       GROUP BY CATEGORY;'''
-        most_popular_initiatives_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+        most_popular_initiatives_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
                                         FROM PETITION P
                                         LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
                                         WHERE P.IS_INITIATIVE = TRUE
                                         AND REGION = '{region_name}' AND CITY_NAME = '{city_name}'
-                                        AND (SUBMISSION_TIME BETWEEN {start_time} AND {end_time})
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
                                         GROUP BY P.ID
                                         ORDER BY LIKE_COUNT DESC
                                         LIMIT {rows_count};'''
-        most_popular_complaints_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+        most_popular_complaints_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
                                         FROM PETITION P
                                         LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
                                         WHERE P.IS_INITIATIVE = FALSE
                                         AND REGION = '{region_name}' AND CITY_NAME = '{city_name}'
-                                        AND (SUBMISSION_TIME BETWEEN {start_time} AND {end_time})
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
+                                        GROUP BY P.ID
+                                        ORDER BY LIKE_COUNT DESC
+                                        LIMIT {rows_count};'''
+        
+        count_per_category_region_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
+                                      FROM PETITION
+                                      WHERE REGION = '{region_name}'
+                                      AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
+                                      GROUP BY CATEGORY;'''
+        most_popular_initiatives_region_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+                                        FROM PETITION P
+                                        LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
+                                        WHERE P.IS_INITIATIVE = TRUE
+                                        AND REGION = '{region_name}'
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
+                                        GROUP BY P.ID
+                                        ORDER BY LIKE_COUNT DESC
+                                        LIMIT {rows_count};'''
+        most_popular_complaints_region_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+                                        FROM PETITION P
+                                        LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
+                                        WHERE P.IS_INITIATIVE = FALSE
+                                        AND REGION = '{region_name}'
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
                                         GROUP BY P.ID
                                         ORDER BY LIKE_COUNT DESC
                                         LIMIT {rows_count};'''
 
-        count_per_category_res, most_popular_initiatives_res, most_popular_complaints_res = await asyncio.gather(db.select_query(count_per_category_query),
-                                                                                                db.select_query(most_popular_initiatives_query),
-                                                                                                db.select_query(most_popular_complaints_query))
+        cpc_city, mpi_city, mpc_city, cpc_reg, mpc_reg, mpi_reg = await asyncio.gather(db.select_query(count_per_category_city_query),
+                                                                                        db.select_query(most_popular_initiatives_city_query),
+                                                                                        db.select_query(most_popular_complaints_city_query),
+                                                                                        db.select_query(count_per_category_region_query),
+                                                                                        db.select_query(most_popular_complaints_region_query),
+                                                                                        db.select_query(most_popular_initiatives_region_query))
         
-        return {"count_per_category": {record["category"]: record["count_per_category"] for record in count_per_category_res},
-                "most_popular_initiatives": [dict(record) for record in most_popular_initiatives_res],
-                "most_popular_complaints": [dict(record) for record in most_popular_complaints_res]}
+        return {"count_per_category_city": {record["category"]: record["count_per_category"] for record in cpc_city},
+                "most_popular_city_initiatives": [dict(record) for record in mpi_city],
+                "most_popular_city_complaints": [dict(record) for record in mpc_city],
+                "count_per_category_region": {record["category"]: record["count_per_category"] for record in cpc_reg},
+                "most_popular_region_initiatives": [dict(record) for record in mpi_reg],
+                "most_popular_region_complaints": [dict(record) for record in mpc_reg]}
 
 async def check_user_like(*args):
         query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
