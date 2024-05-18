@@ -29,7 +29,7 @@ class PetitionStatus(BaseModel):
 # класс для установки или отмены лайка
 class Like(BaseModel):
     petition_id: int
-    user_id: int
+    user_email: str
 
 # класс для получения id пользователя от шлюза
 class UserInfo(BaseModel):

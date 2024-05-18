@@ -25,23 +25,28 @@ async def update_status_of_petition_by_id(status, id, admin_id, comment):
         result = await db.exec_many_query([query1, query2])
         return result
 
-async def get_petitioner_email_by_petition_id(petition_id):
+async def get_petitioner_emails_by_petition_id(petition_id):
         query = f'''SELECT PETITIONER_EMAIL 
                     FROM PETITION
                     WHERE ID = {petition_id}'''
-        email = await db.select_one(query)
-        return email["petitioner_email"]
+        email = (await db.select_one(query))["petitioner_email"]
+        query = f'''SELECT USER_EMAIL
+                        FROM PETITION JOIN LIKES
+                        ON PETITION.ID = LIKES.PETITION_ID
+                        WHERE PETITION.ID = {petition_id};'''
+        emails = set([item["user_email"] for item in (await db.select_query(query))] + [email])
+        return emails
 
 # метод для лайка петиции или его отмены
 async def like_petition_by_id(*args):
-        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
+        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
         existing_like = await db.select_one(query, *args)
 
         if not existing_like:
-                query = '''INSERT INTO LIKES (PETITION_ID, USER_ID) VALUES ($1, $2);'''
+                query = '''INSERT INTO LIKES (PETITION_ID, USER_EMAIL) VALUES ($1, $2);'''
                 await db.exec_query(query, *args)
         else:
-                query = '''DELETE FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
+                query = '''DELETE FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
                 await db.exec_query(query, *args)
 
 # метод для получения ID и заголовка заявки по айди пользователя
@@ -61,7 +66,7 @@ async def get_petitions_by_city(*args):
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
                 WHERE p.REGION = $1 
                 AND p.CITY_NAME = $2 
-                AND p.PETITION_STATUS != 'ожидает модерации'
+                AND p.PETITION_STATUS != 'На модерации'
                 AND p.IS_INITIATIVE = $3
                 GROUP BY p.ID;
                 '''
@@ -143,13 +148,12 @@ async def get_brief_subject_analysis(*args):
                                                                                                                              db.select_query(query3), 
                                                                                                                              db.select_query(query4),
                                                                                                                              db.select_query(query5))
-        
         if len(petitions) == 0:
                 petitions_count, initiatives_count = 0, 0
-        elif len(petitions) == 1 and petitions[0]["is_initiative"] == 'True':
+        elif len(petitions) == 1 and petitions[0]["is_initiative"] == True:
                 initiatives_count = petitions[0]["count"]
                 petitions_count = 0
-        elif len(petitions) == 1 and petitions[0]["is_initiative"] == 'False':
+        elif len(petitions) == 1 and petitions[0]["is_initiative"] == False:
                 petitions_count = petitions[0]["count"]
                 initiatives_count = 0
         else:
@@ -260,7 +264,7 @@ async def get_full_statistics(region_name, city_name, start_time, end_time, rows
                 "most_popular_city_complaints": [dict(record) for record in mpc_city]}
 
 async def check_user_like(*args):
-        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_ID = $2;'''
+        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
         existing_like = await db.select_one(query, *args)
         if not existing_like:
                 return False
