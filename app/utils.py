@@ -116,25 +116,19 @@ async def get_brief_subject_analysis(*args):
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
                      LIMIT 1;'''
-        query3 = f'''SELECT 
-                        CASE 
-                        WHEN COUNT(*) > 0 THEN ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Решено' THEN 1 END)::numeric / COUNT(*)) * 100, 1)
-                        ELSE 0
-                        END AS percent_resolved
-                FROM PETITION
+        
+        query3 = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
                 WHERE IS_INITIATIVE = 'f'
                 AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                AND {args[0]} = '{args[1]}';'''
-
-        query4 = f'''SELECT 
-                        CASE 
-                        WHEN COUNT(*) > 0 THEN ROUND((COUNT(CASE WHEN PETITION_STATUS = 'Одобрено' THEN 1 END)::numeric / COUNT(*)) * 100, 1)
-                        ELSE 0
-                        END AS percent_resolved
-                FROM PETITION
+                AND {args[0]} = '{args[1]}'
+                GROUP BY PETITION_STATUS;'''
+        
+        query4 = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
                 WHERE IS_INITIATIVE = 't'
                 AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                AND {args[0]} = '{args[1]}';'''
+                AND {args[0]} = '{args[1]}'
+                GROUP BY PETITION_STATUS;'''
+
 
         query5 = f'''SELECT CATEGORY FROM PETITION
                      WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
@@ -143,11 +137,13 @@ async def get_brief_subject_analysis(*args):
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
                      LIMIT 1;'''
-        petitions, most_popular_petition, resolved_percent, accepted_percent, most_popular_initiative = await asyncio.gather(db.select_query(query1), 
+        petitions, most_popular_petition, complaints_per_status, initiatives_per_status, most_popular_initiative = await asyncio.gather(db.select_query(query1), 
                                                                                                                              db.select_query(query2), 
                                                                                                                              db.select_query(query3), 
                                                                                                                              db.select_query(query4),
                                                                                                                              db.select_query(query5))
+        
+
         if len(petitions) == 0:
                 petitions_count, initiatives_count = 0, 0
         elif len(petitions) == 1 and petitions[0]["is_initiative"] == True:
@@ -174,8 +170,8 @@ async def get_brief_subject_analysis(*args):
                 "initiatives_count": initiatives_count, 
                 "most_popular_petition": most_popular_pet, 
                 "most_popular_initiative": most_popular_init, 
-                "solved_percent": float(resolved_percent[0]["percent_resolved"]),
-                "accepted_percent": float(accepted_percent[0]["percent_resolved"])}
+                "complaints_per_status": {record["petition_status"]: record["count"] for record in complaints_per_status},
+                "initiatives_per_status": {record["petition_status"]: record["count"] for record in initiatives_per_status}}
 
 async def get_full_statistics(region_name, city_name, start_time, end_time, rows_count):
         count_per_category_city_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
