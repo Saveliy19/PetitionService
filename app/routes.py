@@ -149,10 +149,10 @@ async def get_image(image_path: str):
 # маршрут для получения краткой аналитики по населенному пункту
 @router.post("/get_brief_analysis")
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
-    #try:
-    Info = await get_brief_subject_analysis(subject.type, subject.name, subject.period)
-    #except Exception as e:
-        #raise HTTPException(status_code=500, detail=str(e))
+    try:
+        Info = await get_brief_subject_analysis(subject.region, subject.name, subject.period)
+    except:
+        raise HTTPException(status_code=500)
     return Info, status.HTTP_200_OK
 
 #  маршрут для получения подробного анализа

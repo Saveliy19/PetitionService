@@ -88,9 +88,7 @@ class City(BaseModel):
 class CityWithType(City):
     is_initiative: bool
 
-class SubjectForBriefAnalysis(BaseModel):
-    type: str
-    name: str
+class SubjectForBriefAnalysis(City):
     period: str
 
 class RegionForDetailedAnalysis(BaseModel):

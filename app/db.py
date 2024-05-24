@@ -19,7 +19,7 @@ class DataBase:
                                                   user=self.user, 
                                                   database=self.database, 
                                                   password=self.password, 
-                                                  min_size=6,
+                                                  min_size=1,
                                                   max_size=10)
             print('Successful CONNECTION!')
         except asyncpg.PostgresError as e:
@@ -83,9 +83,9 @@ class DataBase:
             except asyncpg.PostgresError as e:
                 print(f'Error executing INSERT query: {e}')
 
-    '''async def close_connection(self):
+    async def close_connection(self):
         if self.pool:
-            await self.pool.close()'''
+            await self.pool.close()
 
 
 

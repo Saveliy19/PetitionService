@@ -102,77 +102,77 @@ async def get_comments_by_petition_id(*args):
         result = await db.select_query(query, *args)
         return result
 
-
-async def get_brief_subject_analysis(*args):
-        query1 = f'''SELECT IS_INITIATIVE, COUNT(*) 
-                     FROM PETITION
+async def get_most_popular_city_petition_by_period(*args):
+        # получаем самую популярную категорию жалоб/иниициатив в указанном городе за определенный период
+        query = f'''SELECT CATEGORY, count(*) FROM PETITION
                      WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                     AND {args[0]} = '{args[1]}'
-                     GROUP BY IS_INITIATIVE;'''
-        query2 = f'''SELECT CATEGORY FROM PETITION
-                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                     AND IS_INITIATIVE = 'f'
-                     AND {args[0]} = '{args[1]}'
+                     AND IS_INITIATIVE = {args[3]}
+                     AND REGION = '{args[0]}' AND CITY_NAME = '{args[1]}'
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
-                     LIMIT 1;'''
+                     LIMIT {args[4]};'''
+        result = {record["category"]: record["count"] for record in await db.select_query(query)}
+        return result
         
-        query3 = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
-                WHERE IS_INITIATIVE = 'f'
-                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                AND {args[0]} = '{args[1]}'
-                GROUP BY PETITION_STATUS;'''
-        
-        query4 = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
-                WHERE IS_INITIATIVE = 't'
-                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                AND {args[0]} = '{args[1]}'
-                GROUP BY PETITION_STATUS;'''
-
-
-        query5 = f'''SELECT CATEGORY FROM PETITION
-                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
-                     AND IS_INITIATIVE = 't'
-                     AND {args[0]} = '{args[1]}'
+async def get_most_popular_region_petition_by_period(*args):
+        # получаем самую популярную категорию жалоб/инициатив в указанном РЕГИОНЕ за определенный период
+        query = f'''SELECT CATEGORY, count(*) FROM PETITION
+                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[1]}'
+                     AND IS_INITIATIVE = {args[2]}
+                     AND REGION = '{args[0]}'
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
-                     LIMIT 1;'''
-        petitions, most_popular_petition, complaints_per_status, initiatives_per_status, most_popular_initiative = await asyncio.gather(db.select_query(query1), 
-                                                                                                                             db.select_query(query2), 
-                                                                                                                             db.select_query(query3), 
-                                                                                                                             db.select_query(query4),
-                                                                                                                             db.select_query(query5))
+                     LIMIT {args[3]};'''
+        result = {record["category"]: record["count"] for record in await db.select_query(query)}
+        return result
+        
+async def get_city_petition_count_per_status_by_period(*args):
+        # получаем количество жалоб/инициатив на статус за период в указанном городе
+        query = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
+                WHERE IS_INITIATIVE = {args[3]}
+                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[2]}'
+                AND REGION = '{args[0]}' AND CITY_NAME = '{args[1]}'
+                GROUP BY PETITION_STATUS;'''
+        result = {record["petition_status"]: record["count"] for record in await db.select_query(query)}
+        return result
+
+async def get_region_petition_count_per_status_by_period(*args):
+        # получаем количество жалоб/инициатив на статус за период в указанном РЕГИОНЕ
+        query = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
+                WHERE IS_INITIATIVE = {args[2]}
+                AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 {args[1]}'
+                AND REGION = '{args[0]}'
+                GROUP BY PETITION_STATUS;'''
+        result = {record["petition_status"]: record["count"] for record in await db.select_query(query)}
+        return result
+
+async def get_brief_subject_analysis(region_name, city_name, period):
+        (most_popular_city_initiatives,
+        most_popular_city_complaints,
+        most_popular_region_initiatives,
+        most_popular_region_complaints,
+        city_complaints_count_per_status,
+        city_initiatives_count_per_status,
+        region_complaints_count_per_status,
+        region_initiatives_count_per_status) = await asyncio.gather(get_most_popular_city_petition_by_period(region_name, city_name, period, True, 3),
+                                                               get_most_popular_city_petition_by_period(region_name, city_name, period, False, 3),
+                                                               get_most_popular_region_petition_by_period(region_name, period, True, 3),
+                                                               get_most_popular_region_petition_by_period(region_name, period, False, 3),
+                                                               get_city_petition_count_per_status_by_period(region_name, city_name, period, False),
+                                                               get_city_petition_count_per_status_by_period(region_name, city_name, period, True),
+                                                               get_region_petition_count_per_status_by_period(region_name, period, False),
+                                                               get_region_petition_count_per_status_by_period(region_name, period, True))
         
 
-        if len(petitions) == 0:
-                petitions_count, initiatives_count = 0, 0
-        elif len(petitions) == 1 and petitions[0]["is_initiative"] == True:
-                initiatives_count = petitions[0]["count"]
-                petitions_count = 0
-        elif len(petitions) == 1 and petitions[0]["is_initiative"] == False:
-                petitions_count = petitions[0]["count"]
-                initiatives_count = 0
-        else:
-                petitions_count = petitions[0]["count"]
-                initiatives_count = petitions[1]["count"]
-
-        if len(most_popular_initiative) != 0:
-                most_popular_init = most_popular_initiative[0]["category"]
-        else:
-                most_popular_init = 'Пока нет инициатив'
-
-        if len(most_popular_petition) != 0:
-                most_popular_pet = most_popular_petition[0]["category"]
-        else:
-                most_popular_pet = 'Пока нет жалоб'
-
-        return {"petitions_count" : petitions_count, 
-                "initiatives_count": initiatives_count, 
-                "most_popular_petition": most_popular_pet, 
-                "most_popular_initiative": most_popular_init, 
-                "complaints_per_status": {record["petition_status"]: record["count"] for record in complaints_per_status},
-                "initiatives_per_status": {record["petition_status"]: record["count"] for record in initiatives_per_status}}
-
+        return {"most_popular_city_initiatives": most_popular_city_initiatives,
+                "most_popular_city_complaints": most_popular_city_complaints,
+                "city_initiatives_count_per_status": city_initiatives_count_per_status,
+                "city_complaints_count_per_status": city_complaints_count_per_status,
+                "most_popular_region_initiatives": most_popular_region_initiatives,
+                "most_popular_region_complaints": most_popular_region_complaints,
+                "region_initiatives_count_per_status": region_initiatives_count_per_status,
+                "region_complaints_count_per_status": region_complaints_count_per_status
+                }
 async def get_full_statistics(region_name, city_name, start_time, end_time, rows_count):
         count_per_category_city_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
                                       FROM PETITION
@@ -199,20 +199,35 @@ async def get_full_statistics(region_name, city_name, start_time, end_time, rows
                                         ORDER BY LIKE_COUNT DESC
                                         LIMIT {rows_count};'''
         
-        count_per_category_region_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
-                                      FROM PETITION
-                                      WHERE REGION = '{region_name}'
-                                      AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
-                                      AND IS_INITIATIVE = FALSE
-                                      GROUP BY CATEGORY;'''
+        count_per_category_region_query = f'''WITH CITY_COUNT AS (
+                                        SELECT COUNT(DISTINCT CITY_NAME) AS CITY_COUNT
+                                        FROM PETITION
+                                        WHERE REGION = '{region_name}'
+                                        )
+
+                                        SELECT CATEGORY, CAST(COUNT(*) AS FLOAT) / (SELECT CITY_COUNT FROM CITY_COUNT) AS COUNT_PER_CATEGORY
+                                        FROM PETITION
+                                        WHERE REGION = '{region_name}'
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
+                                        AND IS_INITIATIVE = FALSE
+                                        GROUP BY CATEGORY;
+                                        '''
         
 
-        init_count_per_category_region_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
-                                      FROM PETITION
-                                      WHERE REGION = '{region_name}'
-                                      AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
-                                      AND IS_INITIATIVE = TRUE
-                                      GROUP BY CATEGORY;'''
+        init_count_per_category_region_query = f'''WITH CITY_COUNT AS (
+                                        SELECT COUNT(DISTINCT CITY_NAME) AS CITY_COUNT
+                                        FROM PETITION
+                                        WHERE REGION = '{region_name}'
+                                        )
+
+                                        SELECT CATEGORY, CAST(COUNT(*) AS FLOAT) / (SELECT CITY_COUNT FROM CITY_COUNT) AS COUNT_PER_CATEGORY
+                                        FROM PETITION
+                                        WHERE REGION = '{region_name}'
+                                        AND (SUBMISSION_TIME BETWEEN '{start_time}' AND '{end_time}')
+                                        AND IS_INITIATIVE = TRUE
+                                        GROUP BY CATEGORY;
+                                        '''
+        
         init_count_per_category_city_query = f'''SELECT CATEGORY, COUNT(*) AS COUNT_PER_CATEGORY
                                       FROM PETITION
                                       WHERE REGION = '{region_name}' AND CITY_NAME = '{city_name}'
