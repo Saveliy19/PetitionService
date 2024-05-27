@@ -22,6 +22,8 @@ class NewPetition(BaseModel):
 class PetitionStatus(BaseModel):
     id: int
     admin_id: int
+    admin_city: str
+    admin_region: str
     status: str
     comment: str
     

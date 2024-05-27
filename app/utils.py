@@ -59,6 +59,12 @@ async def get_petitions_by_user_email(*args):
         result = await db.select_query(query, *args)
         return result
 
+# метод для проверки соответствия города по айди заявки
+async def check_city_by_petition_id(*args):
+        query = '''select ($2, $3) in (select region, city_name from petition where id=$1) as result;'''
+        result = (await db.select_query(query, *args))[0]["result"]
+        return result
+
 # метод для получения списка всех заявок в указанном городе
 async def get_petitions_by_city(*args):
         query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count

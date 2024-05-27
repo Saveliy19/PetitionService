@@ -10,7 +10,7 @@ from app.utils import (add_new_petition, add_photos_to_petition, update_status_o
                        like_petition_by_id, get_petitions_by_user_email, get_full_info_by_petiton_id, 
                        get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, 
                        check_user_like, get_admin_petitions, get_photos_by_petition_id, 
-                       get_petitioner_emails_by_petition_id, get_full_statistics)
+                       get_petitioner_emails_by_petition_id, get_full_statistics, check_city_by_petition_id)
 
 router = APIRouter()
 
@@ -36,14 +36,16 @@ async def make_petition(petition: NewPetition):
 # маршрут для обновления статуса заявки
 @router.post("/update_petition_status")
 async def update_petition_status(petition: PetitionStatus):
-    #try:
-    result, petitioner_emails = await asyncio.gather(update_status_of_petition_by_id(petition.status,
-                                            petition.id,
-                                            petition.admin_id,
-                                            petition.comment),
-                                            get_petitioner_emails_by_petition_id(petition.id))
-    #except Exception as e:
-    #    raise HTTPException(status_code=500, detail=str(e))
+    if not (await check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
+        raise HTTPException(status_code=403, detail='The admin does not have rights to this city')
+    try:
+        result, petitioner_emails = await asyncio.gather(update_status_of_petition_by_id(petition.status,
+                                                petition.id,
+                                                petition.admin_id,
+                                                petition.comment),
+                                                get_petitioner_emails_by_petition_id(petition.id))
+    except:
+        raise HTTPException(status_code=500)
     if result:
         return {"petitioner_emails": petitioner_emails}, status.HTTP_200_OK
     else:
