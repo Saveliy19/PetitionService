@@ -34,7 +34,7 @@ async def make_petition(petition: NewPetition):
     return {"petition_id": f"{petition_id}"}, status.HTTP_201_CREATED
 
 # маршрут для обновления статуса заявки
-@router.post("/update_petition_status")
+@router.put("/update_petition_status")
 async def update_petition_status(petition: PetitionStatus):
     if not (await check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
         raise HTTPException(status_code=403, detail='The admin does not have rights to this city')
@@ -62,7 +62,7 @@ async def check_like(content: Like):
     return {"result": result}
 
 # маршрут для добавления лайка петиции
-@router.post("/like_petition")
+@router.put("/like_petition")
 async def like_petition(like: Like):
     try:
         await like_petition_by_id(like.petition_id,
