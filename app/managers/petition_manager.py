@@ -1,4 +1,6 @@
 import os
+from app.config import PHOTOS_DIRECTORY
+import base64
 
 class PetitionManager:
         def __init__(self, db):
@@ -28,7 +30,7 @@ class PetitionManager:
                 return result
         
         # получение списка пользователей, которые подписались под заявкой + сам заявитель
-        async def get_petitioners_email(self, *args):
+        async def get_petitioners_email(self, petition_id):
                 query = f'''
                         SELECT PETITIONER_EMAIL AS email
                         FROM PETITION
@@ -126,13 +128,13 @@ class PetitionManager:
                                 f.write(base64.b64decode(p.content))
 
                 query = '''INSERT INTO PHOTO_FOLDER (PETITION_ID, FOLDER_PATH) VALUES ($1, $2);'''
-                await db.exec_query(query, petition_id, folder_path)
+                await self.db.exec_query(query, petition_id, folder_path)
 
         # получаем фотографии петиции
         async def get_petition_photos(self, petition_id):
                 photos = []
                 query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = $1;'''
-                folder_path = (await db.select_one(query, petition_id))["folder_path"]
+                folder_path = (await self.db.select_one(query, petition_id))["folder_path"]
                 for filename in os.listdir(folder_path):
                         file_path = os.path.join(folder_path, filename)
                         photos.append('http://127.0.0.1:8002/images/' +file_path)
