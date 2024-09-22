@@ -15,18 +15,13 @@ class PetitionManager:
                 return petition_id
         
         # обновление статуса петиции
-        async def update_petition_status(self, *args):
-                query = f'''
-                        WITH updated AS (
-                        UPDATE PETITION 
-                        SET PETITION_STATUS = $1 
-                        WHERE ID = $2 
-                        RETURNING ID
-                        )
-                        INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION) 
-                        SELECT ID, $3, $4 FROM updated;
-                        '''
-                result = await self.db.exec_query(query, *args)
+        async def update_petition_status(self, status, id, admin_id, comment):
+                query1 = f'''UPDATE PETITION
+                             SET PETITION_STATUS = $1
+                             WHERE ID = $2;'''
+                query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
+                             VALUES ($1, $2, $3);'''
+                result = await self.db.exec_many_query({query1: [status, id], query2: [id, admin_id, comment]})
                 return result
         
         # получение списка пользователей, которые подписались под заявкой + сам заявитель
