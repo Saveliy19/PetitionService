@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 class Photo(BaseModel):
     filename: str
@@ -16,7 +16,7 @@ class NewPetition(BaseModel):
     header: str
     region: str
     city_name: str
-    photos: List[Photo]
+    photos: Optional[List[Photo]] = None
 
 # класс для обновления статуса заявки
 class PetitionStatus(BaseModel):

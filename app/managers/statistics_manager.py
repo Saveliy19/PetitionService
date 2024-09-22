@@ -4,79 +4,87 @@ class StatisticsManager:
     def __init__(self, db):
                 self.db = db
     
-    async def get_most_popular_city_petition_by_period(self, *args):
+    async def get_most_popular_city_petition_by_period(self, region_name, city_name, period, is_initiative, rows):
         # получаем самую популярную категорию жалоб/иниициатив в указанном городе за определенный период
         query = f'''SELECT CATEGORY, count(*) FROM PETITION
-                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 $3'
-                     AND IS_INITIATIVE = $4
+                     WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '{period}'
+                     AND IS_INITIATIVE = $3
                      AND REGION = $1 AND CITY_NAME = $2
                      GROUP BY CATEGORY
                      ORDER BY COUNT(*) DESC
-                     LIMIT $5;'''
-        result = {record["category"]: record["count"] for record in await self.db.select_query(query, *args)}
+                     LIMIT $4;'''
+        result = {record["category"]: record["count"] for record in await self.db.select_query(query, region_name, city_name, is_initiative, rows)}
         return result
         
-    async def get_most_popular_region_petition_by_period(self, *args):
+    async def get_most_popular_region_petition_by_period(self, region, period, is_initiative, rows):
             # получаем самую популярную категорию жалоб/инициатив в указанном РЕГИОНЕ за определенный период
             query = f'''SELECT CATEGORY, count(*) FROM PETITION
-                        WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 $2'
-                        AND IS_INITIATIVE = $3
+                        WHERE SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '{period}'
+                        AND IS_INITIATIVE = $2
                         AND REGION = $1
                         GROUP BY CATEGORY
                         ORDER BY COUNT(*) DESC
-                        LIMIT $4;'''
-            result = {record["category"]: record["count"] for record in await self.db.select_query(query)}
+                        LIMIT $3;'''
+            result = {record["category"]: record["count"] for record in await self.db.select_query(query, region, is_initiative, rows)}
             return result
             
-    async def get_city_petition_count_per_status_by_period(self, *args):
+    async def get_city_petition_count_per_status_by_period(self, region, city, period, is_initiative):
             # получаем количество жалоб/инициатив на статус за период в указанном городе
             query = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
-                    WHERE IS_INITIATIVE = $4
-                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 $3'
+                    WHERE IS_INITIATIVE = $3
+                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '{period}'
                     AND REGION = $1 AND CITY_NAME = $2
                     GROUP BY PETITION_STATUS;'''
-            result = {record["petition_status"]: record["count"] for record in await self.db.select_query(query)}
+            result = {record["petition_status"]: record["count"] for record in await self.db.select_query(query, region, city, is_initiative)}
             return result
 
-    async def get_region_petition_count_per_status_by_period(self, *args):
+    async def get_region_petition_count_per_status_by_period(self, region, period, is_initiative):
             # получаем количество жалоб/инициатив на статус за период в указанном РЕГИОНЕ
             query = f'''SELECT PETITION_STATUS, COUNT(*) FROM PETITION
-                    WHERE IS_INITIATIVE = $3
-                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '1 $2'
+                    WHERE IS_INITIATIVE = $2
+                    AND SUBMISSION_TIME >= CURRENT_DATE - INTERVAL '{period}'
                     AND REGION = $1
                     GROUP BY PETITION_STATUS;'''
-            result = {record["petition_status"]: record["count"] for record in await self.db.select_query(query)}
+            result = {record["petition_status"]: record["count"] for record in await self.db.select_query(query, region, is_initiative)}
             return result
 
     async def get_brief_subject_analysis(self, region_name, city_name, period):
+            interval_mapping = {
+                        "year": "1 year",
+                        "month": "1 month",
+                        "day": "1 day",
+                        "week": "1 week"
+                }
+            period = interval_mapping[period]
             (
-            most_popular_city_initiatives,
-            most_popular_city_complaints,
-            most_popular_region_initiatives,
-            most_popular_region_complaints,
-            city_complaints_count_per_status,
-            city_initiatives_count_per_status,
-            region_complaints_count_per_status,
-            region_initiatives_count_per_status
+            most_popular_city_initiatives
+            ,most_popular_city_complaints
+            ,most_popular_region_initiatives
+            ,most_popular_region_complaints
+            ,city_complaints_count_per_status
+            ,city_initiatives_count_per_status
+            ,region_complaints_count_per_status
+            ,region_initiatives_count_per_status
             ) = await asyncio.gather(
-                self.get_most_popular_city_petition_by_period(region_name, city_name, period, True, 3),
-                self.get_most_popular_city_petition_by_period(region_name, city_name, period, False, 3),
-                self.get_most_popular_region_petition_by_period(region_name, period, True, 3),
-                self.get_most_popular_region_petition_by_period(region_name, period, False, 3),
-                self.get_city_petition_count_per_status_by_period(region_name, city_name, period, False),
-                self.get_city_petition_count_per_status_by_period(region_name, city_name, period, True),
-                self.get_region_petition_count_per_status_by_period(region_name, period, False),
-                self.get_region_petition_count_per_status_by_period(region_name, period, True))
+                self.get_most_popular_city_petition_by_period(region_name, city_name, period, True, 3)
+                ,self.get_most_popular_city_petition_by_period(region_name, city_name, period, False, 3)
+                ,self.get_most_popular_region_petition_by_period(region_name, period, True, 3)
+                ,self.get_most_popular_region_petition_by_period(region_name, period, False, 3)
+                ,self.get_city_petition_count_per_status_by_period(region_name, city_name, period, False)
+                ,self.get_city_petition_count_per_status_by_period(region_name, city_name, period, True)
+                ,self.get_region_petition_count_per_status_by_period(region_name, period, False)
+                ,self.get_region_petition_count_per_status_by_period(region_name, period, True)
+            )
             
 
-            return {"most_popular_city_initiatives": most_popular_city_initiatives,
-                    "most_popular_city_complaints": most_popular_city_complaints,
-                    "city_initiatives_count_per_status": city_initiatives_count_per_status,
-                    "city_complaints_count_per_status": city_complaints_count_per_status,
-                    "most_popular_region_initiatives": most_popular_region_initiatives,
-                    "most_popular_region_complaints": most_popular_region_complaints,
-                    "region_initiatives_count_per_status": region_initiatives_count_per_status,
-                    "region_complaints_count_per_status": region_complaints_count_per_status
+            return {"most_popular_city_initiatives": most_popular_city_initiatives
+                    ,"most_popular_city_complaints": most_popular_city_complaints
+                    ,"city_initiatives_count_per_status": city_initiatives_count_per_status
+                    ,"city_complaints_count_per_status": city_complaints_count_per_status
+                    ,"most_popular_region_initiatives": most_popular_region_initiatives
+                    ,"most_popular_region_complaints": most_popular_region_complaints
+                    ,"region_initiatives_count_per_status": region_initiatives_count_per_status
+                    ,"region_complaints_count_per_status": region_complaints_count_per_status
                     }
     
     async def get_full_statistics(self, region_name, city_name, start_time, end_time, rows_count):

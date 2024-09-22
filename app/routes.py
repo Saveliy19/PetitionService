@@ -34,7 +34,7 @@ async def make_petition(petition: NewPetition):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    if len(petition.photos) > 0:
+    if petition.photos:
             await petition_manager.add_petition_photos(petition_id, petition.photos)
     return {"petition_id": f"{petition_id}"}, status.HTTP_201_CREATED
 

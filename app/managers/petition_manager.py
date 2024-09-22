@@ -49,7 +49,15 @@ class PetitionManager:
         
         # установка лайка на петицию
         async def like_petition(self, *args):
-                pass
+                query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
+                existing_like = await self.db.select_one(query, *args)
+
+                if not existing_like:
+                        query = '''INSERT INTO LIKES (PETITION_ID, USER_EMAIL) VALUES ($1, $2);'''
+                        await self.db.exec_query(query, *args)
+                else:
+                        query = '''DELETE FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
+                        await self.db.exec_query(query, *args)
 
         # получаем список петиций пользователя по его email
         async def get_petitions_by_email(self, *args):
