@@ -6,11 +6,16 @@ from fastapi.responses import FileResponse
 from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, 
                         PetitionToGetData, PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
                         AdminPetition, AdminPetitions, Comment, RegionForDetailedAnalysis)
-from app.utils import (add_new_petition, add_photos_to_petition, update_status_of_petition_by_id, 
-                       like_petition_by_id, get_petitions_by_user_email, get_full_info_by_petiton_id, 
-                       get_comments_by_petition_id, get_petitions_by_city, get_brief_subject_analysis, 
-                       check_user_like, get_admin_petitions, get_photos_by_petition_id, 
-                       get_petitioner_emails_by_petition_id, get_full_statistics, check_city_by_petition_id)
+
+from app.managers.petition_manager import PetitionManager
+from app.managers.statistics_manager import StatisticsManager
+
+from app.db import DataBase
+from app.config import host, port, user, database, password
+
+db = DataBase(host, port, user, database, password)
+petition_manager = PetitionManager(db)
+statistics_manager = StatisticsManager(db)
 
 router = APIRouter()
 
@@ -18,7 +23,7 @@ router = APIRouter()
 @router.post("/make_petition")
 async def make_petition(petition: NewPetition):
     try:
-        petition_id = await add_new_petition(petition.is_initiative,
+        petition_id = await petition_manager.add_new_petition(petition.is_initiative,
                                        petition.category,
                                        petition.petition_description,
                                        petition.petitioner_email,
@@ -29,21 +34,21 @@ async def make_petition(petition: NewPetition):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    if len(petition.photos) > 0:
-            await add_photos_to_petition(petition_id, petition.photos)
+    if petition.photos:
+            await petition_manager.add_petition_photos(petition_id, petition.photos)
     return {"petition_id": f"{petition_id}"}, status.HTTP_201_CREATED
 
 # маршрут для обновления статуса заявки
 @router.put("/update_petition_status")
 async def update_petition_status(petition: PetitionStatus):
-    if not (await check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
+    if not (await petition_manager.check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
         raise HTTPException(status_code=403, detail='The admin does not have rights to this city')
     try:
-        result, petitioner_emails = await asyncio.gather(update_status_of_petition_by_id(petition.status,
+        result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition.status,
                                                 petition.id,
                                                 petition.admin_id,
                                                 petition.comment),
-                                                get_petitioner_emails_by_petition_id(petition.id))
+                                                petition_manager.get_petitioners_email(petition.id))
     except:
         raise HTTPException(status_code=500)
     if result:
@@ -55,8 +60,7 @@ async def update_petition_status(petition: PetitionStatus):
 @router.post("/check_like")
 async def check_like(content: Like):
     try:
-        result = await check_user_like(content.petition_id,
-                                       content.user_email)
+        result = await petition_manager.check_user_like(content.petition_id, content.user_email)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return {"result": result}
@@ -65,8 +69,7 @@ async def check_like(content: Like):
 @router.put("/like_petition")
 async def like_petition(like: Like):
     try:
-        await like_petition_by_id(like.petition_id,
-                                    like.user_email)
+        await petition_manager.like_petition(like.petition_id, like.user_email)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return status.HTTP_200_OK
@@ -75,7 +78,7 @@ async def like_petition(like: Like):
 @router.post("/get_petitions")
 async def get_petitions(user: UserInfo):
     try:
-        result = await get_petitions_by_user_email(user.email)
+        result = await petition_manager.get_petitions_by_email(user.email)
         petitions = [PetitionWithHeader(id=r["id"], 
                                         header=r["header"], 
                                         status=r["petition_status"], 
@@ -90,7 +93,7 @@ async def get_petitions(user: UserInfo):
 @router.post("/get_city_petitions")
 async def get_city_petitions(city: CityWithType):
     try:
-        result = await get_petitions_by_city(city.region, city.name, city.is_initiative)
+        result = await petition_manager.get_city_petitions(city.region, city.name, city.is_initiative)
         petitions = [PetitionWithHeader(id=r["id"], 
                                         header=r["header"], 
                                         status=r["petition_status"], 
@@ -105,7 +108,7 @@ async def get_city_petitions(city: CityWithType):
 @router.post("/get_admins_city_petitions")
 async def get_admins_city_petitions(city: City):
     try:
-        result = await get_admin_petitions(city.region, city.name)
+        result = await petition_manager.get_admin_petitions(city.region, city.name)
         petitions = [AdminPetition(id=r["id"],
                                         header=r["header"], 
                                         status=r["petition_status"], 
@@ -121,9 +124,9 @@ async def get_admins_city_petitions(city: City):
 @router.post('/get_petition_data')
 async def get_petition_data(petition: PetitionToGetData):
     try:
-        info, comments, photos = await asyncio.gather(get_full_info_by_petiton_id(petition.id),
-                                                      get_comments_by_petition_id(petition.id),
-                                                      get_photos_by_petition_id(petition.id))
+        info, comments, photos = await asyncio.gather(petition_manager.get_full_petition_info(petition.id),
+                                                      petition_manager.get_petition_comments(petition.id),
+                                                      petition_manager.get_petition_photos(petition.id))
         output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
         print(photos)
     except Exception as e:
@@ -152,7 +155,7 @@ async def get_image(image_path: str):
 @router.post("/get_brief_analysis")
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
     try:
-        Info = await get_brief_subject_analysis(subject.region, subject.name, subject.period)
+        Info = await statistics_manager.get_brief_subject_analysis(subject.region, subject.name, subject.period)
     except:
         raise HTTPException(status_code=500)
     return Info, status.HTTP_200_OK
@@ -161,7 +164,7 @@ async def get_brief_analysis(subject: SubjectForBriefAnalysis):
 @router.post("/get_detailed_analysis")
 async def get_brief_analysis(subject: RegionForDetailedAnalysis):
     try:
-        Info = await get_full_statistics(subject.region_name, 
+        Info = await statistics_manager.get_full_statistics(subject.region_name, 
                                             subject.city_name, 
                                             subject.start_time, 
                                             subject.end_time, 
