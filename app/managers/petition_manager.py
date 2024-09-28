@@ -2,7 +2,7 @@ import os
 from app.config import PHOTOS_DIRECTORY
 import base64
 
-from app.models import PetitionStatus, NewPetition, Like
+from app.models import PetitionStatus, NewPetition, Like, PetitionWithHeader, City, CityWithType, AdminPetition
 
 class PetitionManager:
         def __init__(self, db):
@@ -78,15 +78,21 @@ class PetitionManager:
                 return
 
         # получаем список петиций пользователя по его email
-        async def get_petitions_by_email(self, *args):
+        async def get_petitions_by_email(self, email):
                 query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS,
                          p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                         FROM petition p
                         LEFT JOIN likes l ON p.ID = l.PETITION_ID
                         WHERE p.PETITIONER_EMAIL = $1 
                         GROUP BY p.ID;'''
-                result = await self.db.select_query(query, *args)
-                return result
+                result = await self.db.select_query(query, email)
+                petitions = [PetitionWithHeader(id=r["id"], 
+                                        header=r["header"], 
+                                        status=r["petition_status"], 
+                                        address=r["address"], 
+                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
+                                        likes = r["likes_count"]) for r in result]
+                return petitions
 
         # проверка соответствия города петиции
         async def check_city_by_petition_id(self, petition: PetitionStatus):
@@ -97,7 +103,7 @@ class PetitionManager:
                 return result[0]["result"]
 
         # получаем список петиций и краткую информацию о них в указанном городе
-        async def get_city_petitions(self, *args):
+        async def get_city_petitions(self, city: CityWithType):
                 query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
@@ -107,18 +113,31 @@ class PetitionManager:
                 AND p.IS_INITIATIVE = $3
                 GROUP BY p.ID;
                 '''
-                result = await self.db.select_query(query, *args)
-                return result
+                result = await self.db.select_query(query, city.region, city.name, city.is_initiative)
+                petitions = [PetitionWithHeader(id=r["id"], 
+                                        header=r["header"], 
+                                        status=r["petition_status"], 
+                                        address=r["address"], 
+                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
+                                        likes=r["likes_count"]) for r in result]
+                return petitions
 
         # получаем список петиций с информацией о них в указанном городе, включая со статусом на модерации (доступно только админам)
-        async def get_admin_petitions(self, *args):
+        async def get_admin_petitions(self, city: City):
                 query = '''SELECT p.ID, p.IS_INITIATIVE, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
                 WHERE p.REGION = $1 
                 AND p.CITY_NAME = $2
                 GROUP BY p.ID;'''
-                result = await self.db.select_query(query, *args)
+                result = await self.db.select_query(query, city.region, city.name)
+                petitions = [AdminPetition(id=r["id"],
+                                        header=r["header"], 
+                                        status=r["petition_status"], 
+                                        address=r["address"], 
+                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
+                                        likes=r["likes_count"],
+                                        type = 'Жалоба' if r["is_initiative"] == False else 'Инициатива') for r in result]
                 return result
         
         # получаем полную информацию о петиции
