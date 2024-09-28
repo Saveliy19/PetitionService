@@ -3,8 +3,8 @@ import asyncio
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, 
-                        PetitionToGetData, PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
+from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionToGetData,
+                        PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
                         AdminPetition, AdminPetitions, Comment, RegionForDetailedAnalysis)
 
 from app.managers.petition_manager import PetitionManager
@@ -68,50 +68,31 @@ async def like_petition(like: Like):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # маршрут для получения списка заявок по id  пользователя
-@router.post("/get_petitions")
+@router.post("/get_petitions", status_code=status.HTTP_200_OK)
 async def get_petitions(user: UserInfo):
     try:
-        result = await petition_manager.get_petitions_by_email(user.email)
-        petitions = [PetitionWithHeader(id=r["id"], 
-                                        header=r["header"], 
-                                        status=r["petition_status"], 
-                                        address=r["address"], 
-                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                                        likes = r["likes_count"]) for r in result]
+        petitions = await petition_manager.get_petitions_by_email(user.email)
     except Exception as e:
-       raise HTTPException(status_code=500, detail=str(e))
-    return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
+       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения списка заявок по названию города
-@router.post("/get_city_petitions")
+@router.post("/get_city_petitions", status_code=status.HTTP_200_OK)
 async def get_city_petitions(city: CityWithType):
     try:
-        result = await petition_manager.get_city_petitions(city.region, city.name, city.is_initiative)
-        petitions = [PetitionWithHeader(id=r["id"], 
-                                        header=r["header"], 
-                                        status=r["petition_status"], 
-                                        address=r["address"], 
-                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                                        likes=r["likes_count"]) for r in result]
+        petitions = await petition_manager.get_city_petitions(city)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return PetitionsByUser(petitions = petitions), status.HTTP_200_OK
+       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения заявок, с которыми может работать админ
-@router.post("/get_admins_city_petitions")
+@router.post("/get_admins_city_petitions", status_code=status.HTTP_200_OK)
 async def get_admins_city_petitions(city: City):
     try:
-        result = await petition_manager.get_admin_petitions(city.region, city.name)
-        petitions = [AdminPetition(id=r["id"],
-                                        header=r["header"], 
-                                        status=r["petition_status"], 
-                                        address=r["address"], 
-                                        date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                                        likes=r["likes_count"],
-                                        type = 'Жалоба' if r["is_initiative"] == False else 'Инициатива') for r in result]
+        petitions = await petition_manager.get_admin_petitions(city)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return AdminPetitions(petitions = petitions), status.HTTP_200_OK
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения полных данных по заявке
 @router.post('/get_petition_data')
