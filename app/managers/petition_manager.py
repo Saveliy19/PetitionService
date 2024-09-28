@@ -2,6 +2,8 @@ import os
 from app.config import PHOTOS_DIRECTORY
 import base64
 
+from app.models import PetitionStatus
+
 class PetitionManager:
         def __init__(self, db):
                 self.db = db
@@ -17,15 +19,23 @@ class PetitionManager:
         # обновление статуса петиции
         async def update_petition_status(self, status, id, admin_id, comment):
                 query1 = f'''UPDATE PETITION
+<<<<<<< Updated upstream
                              SET PETITION_STATUS = $1
                              WHERE ID = $2;'''
                 query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
                              VALUES ($1, $2, $3);'''
                 result = await self.db.exec_many_query({query1: [status, id], query2: [id, admin_id, comment]})
+=======
+                             SET PETITION_STATUS = '{status}'
+                             WHERE ID = {id};'''
+                query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
+                             VALUES ({id}, {admin_id}, '{comment}');'''
+                result = await self.db.exec_many_query([query1, query2])
+>>>>>>> Stashed changes
                 return result
         
         # получение списка пользователей, которые подписались под заявкой + сам заявитель
-        async def get_petitioners_email(self, petition_id):
+        async def get_petitioners_email(self, petition: PetitionStatus):
                 query = f'''
                         SELECT PETITIONER_EMAIL AS email
                         FROM PETITION
@@ -38,7 +48,7 @@ class PetitionManager:
                         JOIN LIKES ON PETITION.ID = LIKES.PETITION_ID
                         WHERE PETITION.ID = $1;
                 '''
-                results = await self.db.select_query(query, petition_id)
+                results = await self.db.select_query(query, petition.id)
                 emails = {item["email"] for item in results}
                 return emails
         

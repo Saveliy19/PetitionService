@@ -8,7 +8,36 @@ import asyncio
 
 db = DataBase(host, port, user, database, password)
 
-# метод для создания новой петиции в базе
+# +
+async def check_user_like(*args):
+        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
+        existing_like = await db.select_one(query, *args)
+        if not existing_like:
+                return False
+        return True
+
+# +
+async def add_photos_to_petition(petition_id, photos):
+        folder_path = PHOTOS_DIRECTORY + f"{petition_id}"
+        os.mkdir(folder_path)
+        for p in photos:
+                with open(PHOTOS_DIRECTORY + f'{petition_id}/{p.filename}', 'wb') as f:
+                        f.write(base64.b64decode(p.content))
+
+        query = f'''INSERT INTO PHOTO_FOLDER (PETITION_ID, FOLDER_PATH) VALUES ({petition_id}, '{folder_path}');'''
+        await db.exec_query(query)
+        
+#         +
+async def get_photos_by_petition_id(petition_id):
+        photos = []
+        query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = {petition_id};'''
+        folder_path = (await db.select_one(query))["folder_path"]
+        for filename in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, filename)
+                photos.append('http://127.0.0.1:8002/images/' +file_path)
+        return photos
+
+# метод для создания новой петиции в базе +
 async def add_new_petition(*args):
         query = '''INSERT INTO PETITION (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_EMAIL, ADDRESS, HEADER, REGION, CITY_NAME) 
                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID;'''
@@ -16,7 +45,7 @@ async def add_new_petition(*args):
         print(petition_id)
         return petition_id
 
-# метод для обновления статуса имеющейся петиции
+# метод для обновления статуса имеющейся петиции +
 async def update_status_of_petition_by_id(status, id, admin_id, comment):
         query1 = f'''UPDATE PETITION
                    SET PETITION_STATUS = '{status}'
@@ -24,7 +53,7 @@ async def update_status_of_petition_by_id(status, id, admin_id, comment):
         query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION) VALUES ({id}, {admin_id}, '{comment}');'''
         result = await db.exec_many_query([query1, query2])
         return result
-
+# +
 async def get_petitioner_emails_by_petition_id(petition_id):
         query = f'''SELECT PETITIONER_EMAIL 
                     FROM PETITION
@@ -49,7 +78,7 @@ async def like_petition_by_id(*args):
                 query = '''DELETE FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
                 await db.exec_query(query, *args)
 
-# метод для получения ID и заголовка заявки по айди пользователя
+# метод для получения ID и заголовка заявки по айди пользователя +
 async def get_petitions_by_user_email(*args):
         query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
@@ -59,13 +88,13 @@ async def get_petitions_by_user_email(*args):
         result = await db.select_query(query, *args)
         return result
 
-# метод для проверки соответствия города по айди заявки
+# метод для проверки соответствия города по айди заявки +
 async def check_city_by_petition_id(*args):
         query = '''select ($2, $3) in (select region, city_name from petition where id=$1) as result;'''
         result = (await db.select_query(query, *args))[0]["result"]
         return result
 
-# метод для получения списка всех заявок в указанном городе
+# метод для получения списка всех заявок в указанном городе +
 async def get_petitions_by_city(*args):
         query = '''SELECT p.ID, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
@@ -79,7 +108,7 @@ async def get_petitions_by_city(*args):
         result = await db.select_query(query, *args)
         return result
 
-# метод для получения списка всех заявок для администрирования
+# метод для получения списка всех заявок для администрирования +
 async def get_admin_petitions(*args):
         query = '''SELECT p.ID, p.IS_INITIATIVE, p.HEADER, p.PETITION_STATUS, p.ADDRESS, p.SUBMISSION_TIME, COUNT(l.petition_id) AS likes_count
                 FROM petition p
@@ -90,7 +119,7 @@ async def get_admin_petitions(*args):
         result = await db.select_query(query, *args)
         return result
 
-# метод для получения полной информации по заявке по ее айди
+# метод для получения полной информации по заявке по ее айди +
 async def get_full_info_by_petiton_id(*args):
         
         query = '''SELECT p.*, COUNT(l.petition_id) AS likes_count
@@ -102,11 +131,12 @@ async def get_full_info_by_petiton_id(*args):
         print(result)
         return result
 
-# метод для получения количества лайков на петиции по ее айди
+# метод для получения количества лайков на петиции по ее айди +
 async def get_comments_by_petition_id(*args):
         query = '''SELECT SUBMISSION_TIME, COMMENT_DESCRIPTION FROM COMMENTS WHERE PETITION_ID = $1;'''
         result = await db.select_query(query, *args)
         return result
+
 
 async def get_most_popular_city_petition_by_period(*args):
         # получаем самую популярную категорию жалоб/иниициатив в указанном городе за определенный период
@@ -280,28 +310,3 @@ async def get_full_statistics(region_name, city_name, start_time, end_time, rows
                 "most_popular_city_initiatives": [dict(record) for record in mpi_city],
                 "most_popular_city_complaints": [dict(record) for record in mpc_city]}
 
-async def check_user_like(*args):
-        query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
-        existing_like = await db.select_one(query, *args)
-        if not existing_like:
-                return False
-        return True
-
-async def add_photos_to_petition(petition_id, photos):
-        folder_path = PHOTOS_DIRECTORY + f"{petition_id}"
-        os.mkdir(folder_path)
-        for p in photos:
-                with open(PHOTOS_DIRECTORY + f'{petition_id}/{p.filename}', 'wb') as f:
-                        f.write(base64.b64decode(p.content))
-
-        query = f'''INSERT INTO PHOTO_FOLDER (PETITION_ID, FOLDER_PATH) VALUES ({petition_id}, '{folder_path}');'''
-        await db.exec_query(query)
-        
-async def get_photos_by_petition_id(petition_id):
-        photos = []
-        query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = {petition_id};'''
-        folder_path = (await db.select_one(query))["folder_path"]
-        for filename in os.listdir(folder_path):
-                file_path = os.path.join(folder_path, filename)
-                photos.append('http://127.0.0.1:8002/images/' +file_path)
-        return photos

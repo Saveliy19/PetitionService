@@ -1,6 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import List, Optional
+
+
+class Emails(BaseModel):
+    emails: List[EmailStr]
 
 class Photo(BaseModel):
     filename: str

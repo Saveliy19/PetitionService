@@ -44,11 +44,8 @@ async def update_petition_status(petition: PetitionStatus):
     if not (await petition_manager.check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
         raise HTTPException(status_code=403, detail='The admin does not have rights to this city')
     try:
-        result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition.status,
-                                                petition.id,
-                                                petition.admin_id,
-                                                petition.comment),
-                                                petition_manager.get_petitioners_email(petition.id))
+        result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
+                                                        petition_manager.get_petitioners_email(petition))
     except:
         raise HTTPException(status_code=500)
     if result:
