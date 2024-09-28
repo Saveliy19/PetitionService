@@ -25,14 +25,14 @@ class PetitionManager:
                 return {"petition_id": f"{petition_id}"}
         
         # обновление статуса петиции
-        async def update_petition_status(self, petition: PetitionStatus, status, id, admin_id, comment):
+        async def update_petition_status(self, petition: PetitionStatus):
                 query1 = f'''UPDATE PETITION
                              SET PETITION_STATUS = $1
                              WHERE ID = $2;'''
                 query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
                              VALUES ($1, $2, $3);'''
                 try:
-                        result = await self.db.exec_many_query({
+                        await self.db.exec_many_query({
                         query1: [petition.status, petition.id],
                         query2: [petition.id, petition.admin_id, petition.comment]
                         })
@@ -55,8 +55,8 @@ class PetitionManager:
                         WHERE PETITION.ID = $1;
                 '''
                 results = await self.db.select_query(query, petition.id)
-                emails = {item["email"] for item in results}
-                {"petitioner_emails": emails}
+                emails = [item["email"] for item in results]
+                return {"petitioner_emails": emails}
         
         # установка лайка на петицию
         async def like_petition(self, *args):
@@ -82,11 +82,11 @@ class PetitionManager:
                 return result
 
         # проверка соответствия города петиции
-        async def check_city_by_petition_id(self, *args):
-                query = '''SELECR ($2, $3) IN
+        async def check_city_by_petition_id(self, petition: PetitionStatus):
+                query = '''SELECT ($2, $3) IN
                          (SELECT REGION, CITY_NAME FROM PETITION WHERE id=$1)
                            as result;'''
-                result = await self.db.select_query(query, *args)
+                result = await self.db.select_query(query, petition.id, petition.admin_region, petition.admin_city)
                 return result[0]["result"]
 
         # получаем список петиций и краткую информацию о них в указанном городе

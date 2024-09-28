@@ -33,7 +33,7 @@ async def make_petition(petition: NewPetition):
 # маршрут для обновления статуса заявки
 @router.put("/update_petition_status", status_code=status.HTTP_200_OK)
 async def update_petition_status(petition: PetitionStatus):
-    if not (await petition_manager.check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
+    if not (await petition_manager.check_city_by_petition_id(petition)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
     try:
         result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
