@@ -20,23 +20,15 @@ statistics_manager = StatisticsManager(db)
 router = APIRouter()
 
 # маршрут для создания новой петиции
-@router.post("/make_petition")
+@router.post("/make_petition", status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
     try:
-        petition_id = await petition_manager.add_new_petition(petition.is_initiative,
-                                       petition.category,
-                                       petition.petition_description,
-                                       petition.petitioner_email,
-                                       petition.address,
-                                       petition.header,
-                                       petition.region,
-                                       petition.city_name)
-        
+        petition_id = await petition_manager.add_new_petition(petition)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     if petition.photos:
             await petition_manager.add_petition_photos(petition_id, petition.photos)
-    return {"petition_id": f"{petition_id}"}, status.HTTP_201_CREATED
+    return petition_id
 
 # маршрут для обновления статуса заявки
 @router.put("/update_petition_status")
@@ -159,7 +151,7 @@ async def get_brief_analysis(subject: SubjectForBriefAnalysis):
 
 #  маршрут для получения подробного анализа
 @router.post("/get_detailed_analysis")
-async def get_brief_analysis(subject: RegionForDetailedAnalysis):
+async def get_detailed_analysis(subject: RegionForDetailedAnalysis):
     try:
         Info = await statistics_manager.get_full_statistics(subject.region_name, 
                                             subject.city_name, 

@@ -2,36 +2,36 @@ import os
 from app.config import PHOTOS_DIRECTORY
 import base64
 
-from app.models import PetitionStatus
+from app.models import PetitionStatus, NewPetition
 
 class PetitionManager:
         def __init__(self, db):
                 self.db = db
 
         # создание новой петиции
-        async def add_new_petition(self, *args):
+        async def add_new_petition(self, petition: NewPetition):
+                
                 query = '''INSERT INTO PETITION 
                 (IS_INITIATIVE, CATEGORY, PETITION_DESCRIPTION, PETITIONER_EMAIL, ADDRESS, HEADER, REGION, CITY_NAME) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID;'''
-                petition_id = await self.db.insert_returning(query, *args)
-                return petition_id
+                petition_id = await self.db.insert_returning(query, petition.is_initiative,
+                                                                petition.category,
+                                                                petition.petition_description,
+                                                                petition.petitioner_email,
+                                                                petition.address,
+                                                                petition.header,
+                                                                petition.region,
+                                                                petition.city_name)
+                return {"petition_id": f"{petition_id}"}
         
         # обновление статуса петиции
         async def update_petition_status(self, status, id, admin_id, comment):
                 query1 = f'''UPDATE PETITION
-<<<<<<< Updated upstream
                              SET PETITION_STATUS = $1
                              WHERE ID = $2;'''
                 query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
                              VALUES ($1, $2, $3);'''
                 result = await self.db.exec_many_query({query1: [status, id], query2: [id, admin_id, comment]})
-=======
-                             SET PETITION_STATUS = '{status}'
-                             WHERE ID = {id};'''
-                query2 = f'''INSERT INTO COMMENTS (PETITION_ID, USER_ID, COMMENT_DESCRIPTION)
-                             VALUES ({id}, {admin_id}, '{comment}');'''
-                result = await self.db.exec_many_query([query1, query2])
->>>>>>> Stashed changes
                 return result
         
         # получение списка пользователей, которые подписались под заявкой + сам заявитель
