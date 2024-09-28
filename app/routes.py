@@ -47,13 +47,13 @@ async def update_petition_status(petition: PetitionStatus):
 
 
 # маршрут для проверки лайка
-@router.post("/check_like")
-async def check_like(content: Like):
+@router.post("/check_like", status_code=status.HTTP_200_OK)
+async def check_like(like: Like):
     try:
-        result = await petition_manager.check_user_like(content.petition_id, content.user_email)
+        result = await petition_manager.check_user_like(like)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return {"result": result}
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = {"result": result})
 
 # маршрут для добавления лайка петиции
 @router.put("/like_petition")

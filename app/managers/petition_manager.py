@@ -2,7 +2,7 @@ import os
 from app.config import PHOTOS_DIRECTORY
 import base64
 
-from app.models import PetitionStatus, NewPetition
+from app.models import PetitionStatus, NewPetition, Like
 
 class PetitionManager:
         def __init__(self, db):
@@ -131,9 +131,9 @@ class PetitionManager:
                 return result
         
         # проверяем лайк пользователя на записи
-        async def check_user_like(self, *args):
+        async def check_user_like(self, like: Like):
                 query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
-                existing_like = await self.db.select_one(query, *args)
+                existing_like = await self.db.select_one(query, like.petition_id, like.user_email)
                 if not existing_like:
                         return False
                 return True
