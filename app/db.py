@@ -68,8 +68,7 @@ class DataBase:
                     for query, args in query_map.items():
                         await connection.execute(query, *args)
             except asyncpg.PostgresError as e:
-                print(f'Error executing query: {e}')
-                return False
+                raise
         return True
 
     async def insert_returning(self, query, *args):

@@ -1,7 +1,7 @@
 import os
 import asyncio
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionsByUser, PetitionWithHeader, 
                         PetitionToGetData, PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
@@ -28,22 +28,23 @@ async def make_petition(petition: NewPetition):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     if petition.photos:
             await petition_manager.add_petition_photos(petition_id, petition.photos)
-    return petition_id
+    return JSONResponse(content = petition_id)
 
 # маршрут для обновления статуса заявки
-@router.put("/update_petition_status")
+@router.put("/update_petition_status", status_code=status.HTTP_200_OK)
 async def update_petition_status(petition: PetitionStatus):
-    if not (await petition_manager.check_city_by_petition_id(petition.id, petition.admin_region, petition.admin_city)):
-        raise HTTPException(status_code=403, detail='The admin does not have rights to this city')
+    if not (await petition_manager.check_city_by_petition_id(petition)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
     try:
         result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
                                                         petition_manager.get_petitioners_email(petition))
     except:
-        raise HTTPException(status_code=500)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     if result:
-        return {"petitioner_emails": petitioner_emails}, status.HTTP_200_OK
+        return JSONResponse(content = petitioner_emails)
     else:
-        return status.HTTP_500_INTERNAL_SERVER_ERROR
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
+
 
 # маршрут для проверки лайка
 @router.post("/check_like")
