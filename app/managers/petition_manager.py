@@ -2,7 +2,7 @@ import os
 from app.config import PHOTOS_DIRECTORY
 import base64
 
-from app.models import PetitionStatus, NewPetition, Like, PetitionWithHeader, City, CityWithType, AdminPetition
+from app.models import PetitionStatus, NewPetition, Like, PetitionWithHeader, City, CityWithType, AdminPetition, Comment
 
 class PetitionManager:
         def __init__(self, db):
@@ -151,11 +151,11 @@ class PetitionManager:
                 return result
         
         # получаем комментарии к петиции
-        async def get_petition_comments(self, *args):
+        async def get_petition_comments(self, petition_id):
                 query = '''SELECT SUBMISSION_TIME, COMMENT_DESCRIPTION FROM COMMENTS WHERE PETITION_ID = $1;'''
-                result = await self.db.select_query(query, *args)
-                return result
-        
+                comments = await self.db.select_query(query, petition_id)
+                output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
+                return output_comments
         # проверяем лайк пользователя на записи
         async def check_user_like(self, like: Like):
                 query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''

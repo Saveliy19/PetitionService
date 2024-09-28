@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionToGetData,
                         PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
-                        AdminPetition, AdminPetitions, Comment, RegionForDetailedAnalysis)
+                        Comment, RegionForDetailedAnalysis)
 
 from app.managers.petition_manager import PetitionManager
 from app.managers.statistics_manager import StatisticsManager
@@ -95,16 +95,14 @@ async def get_admins_city_petitions(city: City):
     return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения полных данных по заявке
-@router.post('/get_petition_data')
+@router.post('/get_petition_data', status_code=status.HTTP_200_OK)
 async def get_petition_data(petition: PetitionToGetData):
     try:
-        info, comments, photos = await asyncio.gather(petition_manager.get_full_petition_info(petition.id),
+        info, output_comments, photos = await asyncio.gather(petition_manager.get_full_petition_info(petition.id),
                                                       petition_manager.get_petition_comments(petition.id),
                                                       petition_manager.get_petition_photos(petition.id))
-        output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
-        print(photos)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return PetitionData(id = info["id"], 
                         header = info["header"], 
                         is_initiative = info["is_initiative"], 
@@ -118,7 +116,7 @@ async def get_petition_data(petition: PetitionToGetData):
                         city_name = info["city_name"],
                         likes_count = info["likes_count"],
                         comments = output_comments,
-                        photos = photos), status.HTTP_200_OK
+                        photos = photos)
 
 @router.get("/images/{image_path:path}")
 async def get_image(image_path: str):
@@ -126,23 +124,23 @@ async def get_image(image_path: str):
 
 
 # маршрут для получения краткой аналитики по населенному пункту
-@router.post("/get_brief_analysis")
+@router.post("/get_brief_analysis", status_code=status.HTTP_200_OK)
 async def get_brief_analysis(subject: SubjectForBriefAnalysis):
     try:
-        Info = await statistics_manager.get_brief_subject_analysis(subject.region, subject.name, subject.period)
+        info = await statistics_manager.get_brief_subject_analysis(subject.region, subject.name, subject.period)
     except:
-        raise HTTPException(status_code=500)
-    return Info, status.HTTP_200_OK
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = info)
 
 #  маршрут для получения подробного анализа
-@router.post("/get_detailed_analysis")
+@router.post("/get_detailed_analysis", status_code=status.HTTP_200_OK)
 async def get_detailed_analysis(subject: RegionForDetailedAnalysis):
     try:
-        Info = await statistics_manager.get_full_statistics(subject.region_name, 
-                                            subject.city_name, 
-                                            subject.start_time, 
-                                            subject.end_time, 
-                                            subject.rows_count)
+        info = await statistics_manager.get_full_statistics(subject.region_name, 
+                                                            subject.city_name, 
+                                                            subject.start_time, 
+                                                            subject.end_time, 
+                                                            subject.rows_count)
     except Exception as e:
-       raise HTTPException(status_code=500, detail=str(e))
-    return Info, status.HTTP_200_OK
+       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content = info)
