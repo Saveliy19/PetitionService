@@ -1,18 +1,11 @@
 from fastapi import FastAPI
 #from fastapi.middleware.cors import CORSMiddleware
 from app.routes import router
-import logging
+from app.logger import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 import time
-
-# Настройка логирования в файл
-logging.basicConfig(
-    level=logging.ERROR,  # Уровень логирования ERROR
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='app.log',  # Имя файла для логов
-)
 
 app = FastAPI()
 
@@ -27,7 +20,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         if response.status_code >= 400:
             # Логгирование ошибки
             execution_time = time.time() - start_time
-            logging.error(f"Ошибка: {response.status_code} {request.method} {request.url} Время выполнения: {execution_time:.2f} сек, {inf}")
+            logger.error(f"Ошибка: {response.status_code} {request.method} {request.url} Время выполнения: {execution_time:.2f} сек, {inf}")
         
         return response
 
@@ -40,14 +33,5 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 app.add_middleware(LoggingMiddleware)
-
-# Разрешить запросы с любых источников (*)
-'''app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)'''
 
 app.include_router(router)
