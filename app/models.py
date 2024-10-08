@@ -30,16 +30,16 @@ class PetitionStatus(BaseModel):
     admin_region: str
     status: str
     comment: str
+
+class Comment(BaseModel):
+    date: str
+    data: str
     
 
 # класс для установки или отмены лайка
 class Like(BaseModel):
     petition_id: int
     user_email: str
-
-# класс для получения id пользователя от шлюза
-class UserInfo(BaseModel):
-    email: str
 
 # класс с краткой информации о петиции
 class PetitionWithHeader(BaseModel):
@@ -65,10 +65,6 @@ class AdminPetitions(BaseModel):
 # класс для получения данных о заявке, по которой нужно вернуть информацию
 class PetitionToGetData(BaseModel):
     id: int
-
-class Comment(BaseModel):
-    date: str
-    data: str
 
 # класс для возврата полной информации по заявке
 class PetitionData(BaseModel):

@@ -1,25 +1,23 @@
-import os
 import asyncio
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.models import (NewPetition, PetitionStatus, Like, UserInfo, PetitionToGetData,
-                        PetitionData, CityWithType, SubjectForBriefAnalysis, City, 
-                        Comment, RegionForDetailedAnalysis)
+from app.models import (NewPetition, PetitionStatus, Like, PetitionToGetData,PetitionData,
+                        CityWithType, SubjectForBriefAnalysis, City,  RegionForDetailedAnalysis)
 
 from app.managers.petition_manager import PetitionManager
 from app.managers.statistics_manager import StatisticsManager
 
 from app.db import DataBase
-from app.config import host, port, user, database, password
 
-db = DataBase(host, port, user, database, password)
+from app.config import settings
+
+db = DataBase(settings.host, settings.port, settings.user, settings.database, settings.password)
 petition_manager = PetitionManager(db)
 statistics_manager = StatisticsManager(db)
 
 router = APIRouter()
 
-# маршрут для создания новой петиции
 @router.post("/make_petition", status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
     try:
@@ -30,8 +28,7 @@ async def make_petition(petition: NewPetition):
             await petition_manager.add_petition_photos(petition_id, petition.photos)
     return JSONResponse(content = petition_id)
 
-# маршрут для обновления статуса заявки
-@router.put("/update_petition_status", status_code=status.HTTP_200_OK)
+@router.put("/petition_status", status_code=status.HTTP_200_OK)
 async def update_petition_status(petition: PetitionStatus):
     if not (await petition_manager.check_city_by_petition_id(petition)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
@@ -46,17 +43,16 @@ async def update_petition_status(petition: PetitionStatus):
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
 
 
-# маршрут для проверки лайка
-@router.post("/check_like", status_code=status.HTTP_200_OK)
-async def check_like(like: Like):
+@router.get("/like", status_code=status.HTTP_200_OK)
+async def check_like(petition_id: int, user_email: str):
     try:
+        like = Like(petition_id, user_email)
         result = await petition_manager.check_user_like(like)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return JSONResponse(content = {"result": result})
 
-# маршрут для добавления лайка петиции
-@router.put("/like_petition", status_code=status.HTTP_200_OK)
+@router.put("/like", status_code=status.HTTP_200_OK)
 async def like_petition(like: Like):
     try:
         result = await petition_manager.like_petition(like)
@@ -67,28 +63,29 @@ async def like_petition(like: Like):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# маршрут для получения списка заявок по id  пользователя
-@router.post("/get_petitions", status_code=status.HTTP_200_OK)
-async def get_petitions(user: UserInfo):
+@router.get("/user_petitions", status_code=status.HTTP_200_OK)
+async def get_petitions(email: str):
     try:
-        petitions = await petition_manager.get_petitions_by_email(user.email)
+        petitions = await petition_manager.get_petitions_by_email(email)
     except Exception as e:
-       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return JSONResponse(content = {"petitions": petitions})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    return JSONResponse(content={"petitions": petitions})
 
 # маршрут для получения списка заявок по названию города
-@router.post("/get_city_petitions", status_code=status.HTTP_200_OK)
-async def get_city_petitions(city: CityWithType):
+@router.get("/city_petitions", status_code=status.HTTP_200_OK)
+async def get_city_petitions(region: str, name: str, is_initiative: bool):
     try:
+        city = CityWithType(region, name, is_initiative)
         petitions = await petition_manager.get_city_petitions(city)
     except Exception as e:
        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения заявок, с которыми может работать админ
-@router.post("/get_admins_city_petitions", status_code=status.HTTP_200_OK)
-async def get_admins_city_petitions(city: City):
+@router.get("/admin_petitions", status_code=status.HTTP_200_OK)
+async def get_admins_city_petitions(region: str, name: str):
     try:
+        city = City(region, name)
         petitions = await petition_manager.get_admin_petitions(city)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -124,9 +121,10 @@ async def get_image(image_path: str):
 
 
 # маршрут для получения краткой аналитики по населенному пункту
-@router.post("/get_brief_analysis", status_code=status.HTTP_200_OK)
-async def get_brief_analysis(subject: SubjectForBriefAnalysis):
+@router.get("/brief_analysis", status_code=status.HTTP_200_OK)
+async def get_brief_analysis(region: str, name: str, period: str):
     try:
+        subject = SubjectForBriefAnalysis(region, name, period)
         info = await statistics_manager.get_brief_subject_analysis(subject.region, subject.name, subject.period)
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

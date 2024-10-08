@@ -1,6 +1,8 @@
 import os
-from app.config import PHOTOS_DIRECTORY
+from app.config import settings
 import base64
+
+PHOTOS_DIRECTORY = settings.photos_directory
 
 from app.models import PetitionStatus, NewPetition, Like, PetitionWithHeader, City, CityWithType, AdminPetition, Comment
 
