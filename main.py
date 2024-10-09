@@ -2,6 +2,7 @@ from fastapi import FastAPI
 #from fastapi.middleware.cors import CORSMiddleware
 from app import statistics_router, petition_router
 from app import logger
+from app.dependencies import db
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import time
@@ -29,7 +30,14 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+
 app.add_middleware(LoggingMiddleware)
 
-app.include_router(petition_router, prefix="/petitions")
-app.include_router(statistics_router, prefix="/statistics")
+app.include_router(petition_router,
+                   prefix="/petitions",
+                   tags=["Петиции"])
+app.include_router(statistics_router,
+                   prefix="/statistics",
+                   tags=["Статистика"])
+
+
