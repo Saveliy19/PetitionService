@@ -20,17 +20,21 @@ async def make_petition(petition: NewPetition):
 
 @petition_router.patch("/petition/status", status_code=status.HTTP_200_OK)
 async def update_petition_status(petition: PetitionStatus):
-    if not (await petition_manager.check_city_by_petition_id(petition)):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
     try:
+        existing_petition = petition_manager.check_existance(petition.id)
+        if not existing_petition:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        
+        if not (await petition_manager.check_city_by_petition_id(petition)):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
         result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
                                                         petition_manager.get_petitioners_email(petition))
+        if result:
+            return JSONResponse(content = petitioner_emails)
+        else:
+            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    if result:
-        return JSONResponse(content = petitioner_emails)
-    else:
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
     
 @petition_router.get("/{user_email}", status_code=status.HTTP_200_OK)
 async def get_petitions(user_email: str):
@@ -62,30 +66,23 @@ async def get_admins_city_petitions(city: City = Depends()):
 @petition_router.get('/petition{id}', status_code=status.HTTP_200_OK)
 async def get_petition_data(petition: PetitionToGetData = Depends()):
     try:
-        info, output_comments, photos = await asyncio.gather(petition_manager.get_full_petition_info(petition.id),
-                                                      petition_manager.get_petition_comments(petition.id),
-                                                      petition_manager.get_petition_photos(petition.id))
+        existing_petition = petition_manager.check_existance(petition.id)
+        if not existing_petition:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        full_info = petition_manager.get_full_data(petition)
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return PetitionData(id = info["id"], 
-                        header = info["header"], 
-                        is_initiative = info["is_initiative"], 
-                        category = info["category"],
-                        description = info["petition_description"],
-                        status = info["petition_status"],
-                        petitioner_email = info["petitioner_email"],
-                        submission_time = info["submission_time"].strftime('%d.%m.%Y %H:%M'),
-                        address = info["address"],
-                        region = info["region"],
-                        city_name = info["city_name"],
-                        likes_count = info["likes_count"],
-                        comments = output_comments,
-                        photos = photos)
+    return JSONResponse(content = full_info)
 
 
 @petition_router.get("/{petition_id}/like/{user_email}", status_code=status.HTTP_200_OK)
 async def check_like(like: Like = Depends()):
     try:
+        existing_petition = petition_manager.check_existance(like.petition_id)
+        if not existing_petition:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         result = await petition_manager.check_user_like(like)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -94,9 +91,10 @@ async def check_like(like: Like = Depends()):
 @petition_router.put("/like", status_code=status.HTTP_200_OK)
 async def like_petition(like: Like):
     try:
-        result = await petition_manager.like_petition(like)
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Petition doesn't exists!")
+        existing_petition = petition_manager.check_existance(like.petition_id)
+        if not existing_petition:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        await petition_manager.like_petition(like)
     except HTTPException as e:
         raise e
     except Exception as e:
