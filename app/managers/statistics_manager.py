@@ -1,5 +1,7 @@
 import asyncio
 
+from app.database import db
+
 class StatisticsManager:
     def __init__(self, db):
                 self.db = db
@@ -200,3 +202,5 @@ class StatisticsManager:
                     "comp_per_day": {record["day"]: record["complaints_count"] for record in ccpd},
                     "most_popular_city_initiatives": [dict(record) for record in mpi_city],
                     "most_popular_city_complaints": [dict(record) for record in mpc_city]}
+    
+statistics_manager = StatisticsManager(db)

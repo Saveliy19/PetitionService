@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.models import SubjectForBriefAnalysis, RegionForDetailedAnalysis
-from app.dependencies import statistics_manager
+from app.schemas.models import SubjectForBriefAnalysis, RegionForDetailedAnalysis
+from app.managers import statistics_manager
 
 statistics_router = APIRouter()
 

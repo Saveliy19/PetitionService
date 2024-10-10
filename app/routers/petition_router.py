@@ -3,12 +3,14 @@ import asyncio
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.models import NewPetition, PetitionStatus, CityWithType, City, PetitionToGetData, Like, PetitionData
+from typing import List
+
+from app.schemas.models import NewPetition, PetitionStatus, CityWithType, City, PetitionToGetData, Like, PetitionWithHeader
 
 petition_router = APIRouter()
-from app.dependencies import petition_manager
+from app.managers import petition_manager
 
-@petition_router.post("/petition", status_code=status.HTTP_201_CREATED)
+@petition_router.post("/", status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
     try:
         petition_id = await petition_manager.add_new_petition(petition)
@@ -45,13 +47,14 @@ async def get_petitions(user_email: str):
     return JSONResponse(content={"petitions": petitions})
 
 # маршрут для получения списка заявок по названию города
-@petition_router.get("/{region}/{name}", status_code=status.HTTP_200_OK)
+@petition_router.get("/{region}/{name}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
 async def get_city_petitions(city: CityWithType = Depends()):
     try:
         petitions = await petition_manager.get_city_petitions(city)
+        print('Готово')
     except Exception as e:
        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return JSONResponse(content = {"petitions": petitions})
+    return petitions
 
 # маршрут для получения заявок, с которыми может работать админ
 @petition_router.get("/admin/{region}/{name}", status_code=status.HTTP_200_OK)
@@ -63,7 +66,7 @@ async def get_admins_city_petitions(city: City = Depends()):
     return JSONResponse(content = {"petitions": petitions})
 
 # маршрут для получения полных данных по заявке
-@petition_router.get('/petition{id}', status_code=status.HTTP_200_OK)
+@petition_router.get('/{id}', status_code=status.HTTP_200_OK)
 async def get_petition_data(petition: PetitionToGetData = Depends()):
     try:
         existing_petition = petition_manager.check_existance(petition.id)

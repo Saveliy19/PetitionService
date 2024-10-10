@@ -1,2 +1,2 @@
-from .petition_manager import PetitionManager
-from .statistics_manager import StatisticsManager
+from .petition_manager import petition_manager
+from .statistics_manager import statistics_manager

@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv('config.env')
+load_dotenv()
 
 class Settings:
     host: str = os.getenv("DB_HOST")

@@ -8,9 +8,9 @@ import asyncio
 
 PHOTOS_DIRECTORY = settings.photos_directory
 
-from fastapi import HTTPException, status
+from app.database import db
 
-from app.models import (
+from app.schemas.models import (
                         PetitionStatus, NewPetition, Like, PetitionWithHeader, 
                         City, CityWithType, AdminPetition, Comment, PetitionToGetData,
                         PetitionData
@@ -245,3 +245,5 @@ class PetitionManager:
                         file_path = os.path.join(folder_path, filename)
                         photos.append('http://127.0.0.1:8002/images/' +file_path)
                 return photos
+        
+petition_manager = PetitionManager(db)

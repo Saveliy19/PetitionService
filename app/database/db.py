@@ -1,9 +1,6 @@
 import asyncpg
-from asyncpg import Record
-from typing import List
-
 from app.logger import logger
-
+from app.config import settings
 
 class DataBase:
     def __init__(self, host, port, user, database, password):
@@ -109,3 +106,5 @@ class DataBase:
     async def close_connection(self):
         if self.pool:
             await self.pool.close()
+
+db = DataBase(settings.host, settings.port, settings.user, settings.database, settings.password)
