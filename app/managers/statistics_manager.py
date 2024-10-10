@@ -1,6 +1,10 @@
 import asyncio
 
+from datetime import datetime
+
 from app.database import db
+
+
 
 class StatisticsManager:
     def __init__(self, db):
@@ -100,7 +104,7 @@ class StatisticsManager:
                                         GROUP BY CATEGORY;'''
             
             # Список наиболее популярных инициатив в указанном городе
-            most_popular_initiatives_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+            most_popular_initiatives_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, TO_CHAR(P.SUBMISSION_TIME, 'YYYY-MM-DD HH24:MI:SS'), COUNT(L.ID) AS LIKE_COUNT
                                             FROM PETITION P
                                             LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
                                             WHERE P.IS_INITIATIVE = TRUE
@@ -111,7 +115,7 @@ class StatisticsManager:
                                             LIMIT $5;'''
             
             # самые попклярные жалобы в указанном городе
-            most_popular_complaints_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, P.SUBMISSION_TIME, COUNT(L.ID) AS LIKE_COUNT
+            most_popular_complaints_city_query = f'''SELECT P.ID, P.HEADER, P.CATEGORY, TO_CHAR(P.SUBMISSION_TIME, 'YYYY-MM-DD HH24:MI:SS'), COUNT(L.ID) AS LIKE_COUNT
                                             FROM PETITION P
                                             LEFT JOIN LIKES L ON P.ID = L.PETITION_ID
                                             WHERE P.IS_INITIATIVE = FALSE
@@ -185,21 +189,21 @@ class StatisticsManager:
             (
              cpc_city, mpi_city, mpc_city, cpc_reg,
              init_cpc_city, init_cpc_reg, icpd, ccpd
-             ) = await asyncio.gather(self.db.select_query(count_per_category_city_query, region_name, city_name, start_time, end_time, rows_count),
-                self.db.select_query(most_popular_initiatives_city_query, region_name, city_name, start_time, end_time, rows_count),
-                self.db.select_query(most_popular_complaints_city_query, region_name, city_name, start_time, end_time, rows_count),
-                self.db.select_query(count_per_category_region_query, region_name, start_time, end_time),
-                self.db.select_query(init_count_per_category_city_query, region_name, city_name, start_time, end_time),
-                self.db.select_query(init_count_per_category_region_query, region_name, start_time, end_time),
-                self.db.select_query(init_count_per_day_query, city_name, start_time, end_time),
-                self.db.select_query(comp_count_per_day_query))
+             ) = await asyncio.gather(self.db.select_query(count_per_category_city_query, region_name, city_name, start_time, end_time),
+                                        self.db.select_query(most_popular_initiatives_city_query, region_name, city_name, start_time, end_time, rows_count),
+                                        self.db.select_query(most_popular_complaints_city_query, region_name, city_name, start_time, end_time, rows_count),
+                                        self.db.select_query(count_per_category_region_query, region_name, start_time, end_time),
+                                        self.db.select_query(init_count_per_category_city_query, region_name, city_name, start_time, end_time),
+                                        self.db.select_query(init_count_per_category_region_query, region_name, start_time, end_time),
+                                        self.db.select_query(init_count_per_day_query, city_name, start_time, end_time),
+                                        self.db.select_query(comp_count_per_day_query, city_name, start_time, end_time))
             
             return {"count_per_category_city": {record["category"]: record["count_per_category"] for record in cpc_city},
                     "count_per_category_region": {record["category"]: record["count_per_category"] for record in cpc_reg},
                     "init_count_per_category_region": {record["category"]: record["count_per_category"] for record in init_cpc_reg},
                     "init_count_per_category_city": {record["category"]: record["count_per_category"] for record in init_cpc_city},
-                    "init_per_day": {record["day"]: record["initiatives_count"] for record in icpd},
-                    "comp_per_day": {record["day"]: record["complaints_count"] for record in ccpd},
+                    "init_per_day": {record["day"].strftime("%Y-%m-%d %H:%M:%S"): record["initiatives_count"] for record in icpd},
+                    "comp_per_day": {record["day"].strftime("%Y-%m-%d %H:%M:%S"): record["complaints_count"] for record in ccpd},
                     "most_popular_city_initiatives": [dict(record) for record in mpi_city],
                     "most_popular_city_complaints": [dict(record) for record in mpc_city]}
     

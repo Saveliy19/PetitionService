@@ -23,10 +23,8 @@ class DataBase:
             logger.info("Успешно подключено к базе данных")
         except asyncpg.PostgresError as e:
             logger.error("Ошибка подключения к БД", e)
-            raise e
         except Exception as e:
-            logger.exception("Непредвиденная ошибка при подключении к БД", exc_info=e)
-            raise e
+            logger.exception(f"Непредвиденная ошибка при подключении к БД", exc_info=e)
 
     async def select_query(self, query, *args):
         if not self.pool:
@@ -38,10 +36,8 @@ class DataBase:
                     return result
             except asyncpg.PostgresError as e:
                 logger.error(f'Ошибка при исполнении запроса: {query} с параметрами: {args}. Ошибка: {e}')
-                raise e
             except Exception as e:
-                logger.exception("Непредвиденная ошибка при исполнении запроса", exc_info=e)
-                raise e
+                logger.exception(f"Непредвиденная ошибка при исполнении запроса {query} с параметрами: {args}", exc_info=e)
     
     async def select_one(self, query, *args):
         if not self.pool:
@@ -53,10 +49,8 @@ class DataBase:
                     return result
             except asyncpg.PostgresError as e:
                 logger.error(f'Ошибка при исполнении запроса: {query} с параметрами: {args}. Ошибка: {e}')
-                raise e
             except Exception as e:
-                logger.exception("Непредвиденная ошибка при исполнении запроса", exc_info=e)
-                raise e
+                logger.exception(f"Непредвиденная ошибка при исполнении запроса {query} с параметрами: {args}", exc_info=e)
 
     async def exec_query(self, query, *args):
         if not self.pool:
@@ -67,10 +61,9 @@ class DataBase:
                     await connection.execute(query, *args)
             except asyncpg.PostgresError as e:
                 logger.error(f'Ошибка при исполнении запроса: {query} с параметрами: {args}. Ошибка: {e}')
-                raise e
             except Exception as e:
-                logger.exception("Непредвиденная ошибка при выполнении запроса", exc_info=e)
-                raise e
+                logger.exception(f"Непредвиденная ошибка при выполнении запроса {query} с параметрами: {args}", exc_info=e)
+
 
     async def exec_many_query(self, query_map):
         if not self.pool:
@@ -82,10 +75,8 @@ class DataBase:
                         await connection.execute(query, *args)
             except asyncpg.PostgresError as e:
                 logger.error(f'Ошибка при исполнении запроса: {query} с параметрами: {args}. Ошибка: {e}')
-                raise e
             except Exception as e:
-                logger.exception("Непредвиденная ошибка при выполнении запроса", exc_info=e)
-                raise e
+                logger.exception(f"Непредвиденная ошибка при выполнении запроса {query} с параметрами: {args}", exc_info=e)
         return True
 
     async def insert_returning(self, query, *args):
@@ -98,10 +89,8 @@ class DataBase:
                     return result
             except asyncpg.PostgresError as e:
                 logger.error(f'Ошибка при исполнении запроса: {query} с параметрами: {args}. Ошибка: {e}')
-                raise e
             except Exception as e:
-                logger.exception("Непредвиденная ошибка при выполнении запроса", exc_info=e)
-                raise e
+                logger.exception(f"Непредвиденная ошибка при выполнении запроса {query} с параметрами: {args}", exc_info=e)
 
     async def close_connection(self):
         if self.pool:

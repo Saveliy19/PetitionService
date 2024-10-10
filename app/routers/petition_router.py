@@ -10,6 +10,8 @@ from app.schemas.models import NewPetition, PetitionStatus, CityWithType, City, 
 petition_router = APIRouter()
 from app.managers import petition_manager
 
+from fastapi_cache.decorator import cache
+
 @petition_router.post("/", status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
     try:

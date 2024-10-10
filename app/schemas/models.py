@@ -96,6 +96,6 @@ class SubjectForBriefAnalysis(City):
 class RegionForDetailedAnalysis(BaseModel):
     region_name: str
     city_name: str
-    start_time: str
-    end_time: str
+    start_time: datetime
+    end_time: datetime
     rows_count: int
