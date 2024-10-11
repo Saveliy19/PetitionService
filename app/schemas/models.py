@@ -89,7 +89,8 @@ class CityWithType(City):
     is_initiative: bool
 
 class SubjectForBriefAnalysis(City):
-    period: str
+    start_time: datetime
+    end_time: datetime
 
 class RegionForDetailedAnalysis(BaseModel):
     region_name: str
