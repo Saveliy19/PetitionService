@@ -35,8 +35,6 @@ class Comment(BaseModel):
     date: str
     data: str
     
-
-# класс для установки или отмены лайка
 class Like(BaseModel):
     petition_id: int
     user_email: str

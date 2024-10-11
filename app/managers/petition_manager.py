@@ -10,7 +10,7 @@ PHOTOS_DIRECTORY = settings.photos_directory
 
 from app.database import db
 
-from app.schemas.models import (
+from app.schemas import (
                         PetitionStatus, NewPetition, Like, PetitionWithHeader, 
                         City, CityWithType, AdminPetition, Comment, PetitionToGetData,
                         PetitionData

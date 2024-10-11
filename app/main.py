@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app import statistics_router, petition_router
+from app import statistics_router, petition_router, like_router
 from starlette.requests import Request
 import time
 
@@ -29,8 +29,13 @@ async def add_process_time_header(request: Request, call_next):
 app.include_router(petition_router,
                    prefix="/petitions",
                    tags=["Петиции"])
+
 app.include_router(statistics_router,
                    prefix="/statistics",
                    tags=["Статистика"])
+
+app.include_router(like_router,
+                   prefix="/like",
+                   tags=["Лайки"])
 
 
