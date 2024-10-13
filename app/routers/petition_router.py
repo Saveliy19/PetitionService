@@ -5,9 +5,10 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from typing import List
 
-from app import logger
+from app.logger import logger
 
-from app.schemas import NewPetition, PetitionStatus, CityWithType, City, PetitionToGetData, PetitionWithHeader
+from app.schemas import (NewPetition, PetitionStatus, CityWithType, City,
+                         PetitionWithHeader, PetitionData, Email, AdminPetition, Petitioners)
 
 petition_router = APIRouter()
 
@@ -26,11 +27,11 @@ async def make_petition(petition: NewPetition):
         logger.error("Ошибка при создании петиции", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@petition_router.patch("/petition/status", status_code=status.HTTP_200_OK)
-async def update_petition_status(petition: PetitionStatus):
+@petition_router.patch("/{id}/status", response_model = Petitioners, status_code=status.HTTP_200_OK)
+async def update_petition_status(id: int, petition: PetitionStatus = Depends()):
     try:
-        existing_petition = petition_manager.check_existance(petition.id)
-        if not existing_petition:
+        petition.id = id
+        if not (await petition_manager.check_existance(petition.id)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         
         if not (await petition_manager.check_city_by_petition_id(petition)):
@@ -38,22 +39,24 @@ async def update_petition_status(petition: PetitionStatus):
         result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
                                                         petition_manager.get_petitioners_email(petition))
         if result:
-            return JSONResponse(content = petitioner_emails)
+            return petitioner_emails
         else:
             raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Ошибка при обновлении статуса петиции", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@petition_router.get("/user/{email}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
 @cache(expire=60)
-@petition_router.get("/{user_email}", status_code=status.HTTP_200_OK)
-async def get_petitions(user_email: str):
+async def get_petitions(email: Email = Depends()):
     try:
-        petitions = await petition_manager.get_petitions_by_email(user_email)
-        return JSONResponse(content={"petitions": petitions})
+        petitions = await petition_manager.get_petitions_by_email(email.email)
+        return petitions
     except Exception as e:
-        logger.error(f"Ошибка при получении заявок пользователя {user_email}", exc_info=e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        logger.error(f"Ошибка при получении заявок пользователя {email.email}", exc_info=e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 # маршрут для получения списка заявок по названию города
@@ -69,29 +72,29 @@ async def get_city_petitions(city: CityWithType = Depends()):
     
 
 # маршрут для получения заявок, с которыми может работать админ
-@petition_router.get("/admin/{region}/{name}", status_code=status.HTTP_200_OK)
+@petition_router.get("/admin/{region}/{name}", response_model=List[AdminPetition], status_code=status.HTTP_200_OK)
 @cache(expire=60)
 async def get_admins_city_petitions(city: City = Depends()):
     try:
         petitions = await petition_manager.get_admin_petitions(city)
-        return JSONResponse(content = {"petitions": petitions})
+        return petitions
     except Exception as e:
         logger.error(f"Ошибка при получении заявок города доступных админу {city.region} {city.name}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 # маршрут для получения полных данных по заявке
-@petition_router.get('/{id}', status_code=status.HTTP_200_OK)
+@petition_router.get('/{id}', response_model=PetitionData, status_code=status.HTTP_200_OK)
 @cache(expire=60)
-async def get_petition_data(petition: PetitionToGetData = Depends()):
+async def get_petition_data(id: int):
     try:
-        existing_petition = petition_manager.check_existance(petition.id)
+        existing_petition = await petition_manager.check_existance(id)
         if not existing_petition:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        full_info = petition_manager.get_full_data(petition)
-        return JSONResponse(content = full_info)
+        full_info = await petition_manager.get_full_data(id)
+        return full_info
     except Exception as e:
-        logger.error(f"Ошибка при получении данных заявки {petition.id}", exc_info=e)
+        logger.error(f"Ошибка при получении данных заявки {id}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     

@@ -2,7 +2,7 @@ import os
 from app.config import settings
 import base64
 
-from app.logger import logger
+from app import logger
 
 import asyncio
 
@@ -12,8 +12,8 @@ from app.database import db
 
 from app.schemas import (
                         PetitionStatus, NewPetition, Like, PetitionWithHeader, 
-                        City, CityWithType, AdminPetition, Comment, PetitionToGetData,
-                        PetitionData
+                        City, CityWithType, AdminPetition, Comment,
+                        PetitionData, IsLiked, Petitioners
                        )
 
 class PetitionManager:
@@ -22,7 +22,7 @@ class PetitionManager:
 
         async def check_existance(self, petition_id: int):
                 try:
-                        petition_query = '''SELECT ID FROM PETITIONS WHERE ID = $1;'''
+                        petition_query = '''SELECT ID FROM PETITION WHERE ID = $1;'''
                         existing_petition = await self.db.select_one(petition_query, petition_id)
                         if existing_petition is None:
                                 return False
@@ -49,28 +49,10 @@ class PetitionManager:
                         logger.error("Ошибка при создании петиции", exc_info=e)
                         raise e
         
-        async def get_full_data(self, petition: PetitionToGetData):
-                queries = [asyncio.create_task(self.get_full_petition_info(petition.id)),
-                           asyncio.create_task(self.get_petition_comments(petition.id)),
-                           asyncio.create_task(self.get_petition_photos(petition.id))]
-                done, pending = await asyncio.wait(queries, return_when=asyncio.FIRST_EXCEPTION)
-
-                if len(done) != 3:
-                        for pending_task in pending:
-                                pending_task.cancel()
-                        for task in done:
-                                if task.exception is not None:
-                                        logger.error(f"Ошибка при получении данных заявки id {petition.id}", exc_info=task.exception())
-                                        raise task.exception()
-
-                else:
-                        for task in done:
-                                if task is queries[1]:
-                                        info = task.result()
-                                elif task is queries[2]:
-                                        output_comments = task.result()
-                                else:
-                                        photos = task.result()
+        async def get_full_data(self, petition_id: int):
+                info, output_comments, photos = await asyncio.gather(self.get_full_petition_info(petition_id),
+                                                                     self.get_petition_comments(petition_id),
+                                                                     self.get_petition_photos(petition_id))
 
                 return PetitionData(id = info["id"], 
                         header = info["header"], 
@@ -86,6 +68,7 @@ class PetitionManager:
                         likes_count = info["likes_count"],
                         comments = output_comments,
                         photos = photos)
+
         
         async def update_petition_status(self, petition: PetitionStatus):
                 query1 = f'''UPDATE PETITION
@@ -95,8 +78,8 @@ class PetitionManager:
                              VALUES ($1, $2, $3);'''
                 try:
                         await self.db.exec_many_query({
-                        query1: [petition.status, petition.id],
-                        query2: [petition.id, petition.admin_id, petition.comment]
+                        query1: [petition.status, id],
+                        query2: [id, petition.admin_id, petition.comment]
                         })
                         return True
                 except:
@@ -117,16 +100,16 @@ class PetitionManager:
                         WHERE PETITION.ID = $1;
                 '''
                 results = await self.db.select_query(query, petition.id)
-                emails = [item["email"] for item in results]
-                return {"petitioner_emails": emails}
+                return Petitioners(petitioners_emails=[item["email"] for item in results])
         
         # проверяем лайк пользователя на записи
         async def check_user_like(self, like: Like):
                 query = '''SELECT * FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
+                result = True
                 existing_like = await self.db.select_one(query, like.petition_id, like.user_email)
                 if not existing_like:
-                        return False
-                return True
+                        result = False
+                return IsLiked(is_liked = result)
         
         async def _delete_like(self, like: Like):
                 query = '''DELETE FROM LIKES WHERE PETITION_ID = $1 AND USER_EMAIL = $2;'''
@@ -167,8 +150,8 @@ class PetitionManager:
                 query = '''SELECT ($2, $3) IN
                          (SELECT REGION, CITY_NAME FROM PETITION WHERE id=$1)
                            as result;'''
-                result = await self.db.select_query(query, petition.id, petition.admin_region, petition.admin_city)
-                return result[0]["result"]
+                result = await self.db.select_one(query, petition.id, petition.admin_region, petition.admin_city)
+                return result["result"]
 
         # получаем список петиций и краткую информацию о них в указанном городе
         async def get_city_petitions(self, city: CityWithType):
@@ -179,9 +162,11 @@ class PetitionManager:
                 AND p.CITY_NAME = $2 
                 AND p.PETITION_STATUS != 'На модерации'
                 AND p.IS_INITIATIVE = $3
-                GROUP BY p.ID;
+                GROUP BY p.ID
+                LIMIT $4
+                OFFSET $5;
                 '''
-                result = await self.db.select_query(query, city.region, city.name, city.is_initiative)
+                result = await self.db.select_query(query, city.region, city.name, city.is_initiative, city.limit, city.offset)
                 petitions = [PetitionWithHeader(id=r["id"], 
                                         header=r["header"], 
                                         status=r["petition_status"], 
@@ -197,8 +182,10 @@ class PetitionManager:
                 LEFT JOIN likes l ON p.ID = l.PETITION_ID
                 WHERE p.REGION = $1 
                 AND p.CITY_NAME = $2
-                GROUP BY p.ID;'''
-                result = await self.db.select_query(query, city.region, city.name)
+                GROUP BY p.ID
+                LIMIT $3
+                OFFSET $4;'''
+                result = await self.db.select_query(query, city.region, city.name, city.limit, city.offset)
                 petitions = [AdminPetition(id=r["id"],
                                         header=r["header"], 
                                         status=r["petition_status"], 
@@ -206,7 +193,7 @@ class PetitionManager:
                                         date=r["submission_time"].strftime('%d.%m.%Y %H:%M'),
                                         likes=r["likes_count"],
                                         type = 'Жалоба' if r["is_initiative"] == False else 'Инициатива') for r in result]
-                return result
+                return petitions
         
         # получаем полную информацию о петиции
         async def get_full_petition_info(self, *args):
@@ -240,10 +227,13 @@ class PetitionManager:
         async def get_petition_photos(self, petition_id):
                 photos = []
                 query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = $1;'''
-                folder_path = (await self.db.select_one(query, petition_id))["folder_path"]
-                for filename in os.listdir(folder_path):
-                        file_path = os.path.join(folder_path, filename)
-                        photos.append('http://127.0.0.1:8002/images/' +file_path)
+                try:
+                        folder_path = (await self.db.select_one(query, petition_id))["folder_path"]
+                        for filename in os.listdir(folder_path):
+                                file_path = os.path.join(folder_path, filename)
+                                photos.append('http://127.0.0.1:8002/images/' +file_path)
+                except TypeError:
+                        pass
                 return photos
         
 petition_manager = PetitionManager(db)

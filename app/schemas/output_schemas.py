@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Dict, List
 
 class Petition(BaseModel):
@@ -28,3 +28,46 @@ class BriefAnalysis(BaseModel):
     city_initiatives_count_per_status: Dict
     region_complaints_count_per_status: Dict
     region_initiatives_count_per_status: Dict
+
+class IsLiked(BaseModel):
+    is_liked: bool
+
+class Emails(BaseModel):
+    emails: List[EmailStr]
+
+
+class Petitioners(BaseModel):
+    petitioners_emails: List[EmailStr]
+
+class Comment(BaseModel):
+    date: str
+    data: str
+
+class PetitionData(BaseModel):
+    id: int
+    header: str
+    is_initiative: bool
+    category: str
+    description: str
+    status: str
+    petitioner_email: str
+    submission_time: str
+    address: str
+    likes_count: int
+    region: str
+    city_name: str
+    comments: List[Comment]
+    photos: List[str]
+
+
+# класс с краткой информации о петиции
+class PetitionWithHeader(BaseModel):
+    id: int
+    header: str
+    status: str
+    address: str
+    date: str
+    likes: int
+
+class AdminPetition(PetitionWithHeader):
+    type: str
