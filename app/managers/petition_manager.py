@@ -1,15 +1,13 @@
-import os
 from app.config import settings
-import base64
 
 from app import logger
 
 import asyncio
 
-PHOTOS_DIRECTORY = settings.photos_directory
-
 from app.database import db
-from like_manager import LikeManager
+
+from .like_manager import LikeManager
+from .media_manager import MediaManager
 
 from app.schemas import (
                         PetitionStatus, NewPetition, Like, PetitionWithHeader, 
@@ -21,6 +19,7 @@ class PetitionManager:
         def __init__(self, db):
                 self.db = db
                 self.like_manager = LikeManager(db)
+                self.media_manager = MediaManager(db, settings.photos_directory)
 
         async def check_existance(self, petition_id: int):
                 try:
@@ -50,6 +49,16 @@ class PetitionManager:
                 except Exception as e:
                         logger.error("Ошибка при создании петиции", exc_info=e)
                         raise e
+                
+        # получаем полную информацию о петиции
+        async def get_full_petition_info(self, *args):
+                query = '''SELECT p.*, COUNT(l.petition_id) AS likes_count
+                FROM petition p
+                LEFT JOIN likes l ON p.ID = l.PETITION_ID
+                WHERE p.ID = $1
+                GROUP BY p.ID;'''
+                result = await self.db.select_one(query, *args)
+                return result
         
         async def get_full_data(self, petition_id: int):
                 info, output_comments, photos = await asyncio.gather(self.get_full_petition_info(petition_id),
@@ -105,10 +114,10 @@ class PetitionManager:
                 return Petitioners(petitioners_emails=[item["email"] for item in results])
         
         async def check_user_like(self, like: Like):
-                return self.like_manager.check_user_like(like)
+                return await self.like_manager.check_user_like(like)
 
         async def like_petition(self, like: Like):
-                self.like_manager.like_petition(like)
+                return await self.like_manager.like_petition(like)
 
         # получаем список петиций пользователя по его email
         async def get_petitions_by_email(self, email):
@@ -177,45 +186,19 @@ class PetitionManager:
                                         type = 'Жалоба' if r["is_initiative"] == False else 'Инициатива') for r in result]
                 return petitions
         
-        # получаем полную информацию о петиции
-        async def get_full_petition_info(self, *args):
-                query = '''SELECT p.*, COUNT(l.petition_id) AS likes_count
-                FROM petition p
-                LEFT JOIN likes l ON p.ID = l.PETITION_ID
-                WHERE p.ID = $1
-                GROUP BY p.ID;'''
-                result = await self.db.select_one(query, *args)
-                return result
-        
         # получаем комментарии к петиции
-        async def get_petition_comments(self, petition_id):
+        async def get_petition_comments(self, petition_id: int):
                 query = '''SELECT SUBMISSION_TIME, COMMENT_DESCRIPTION FROM COMMENTS WHERE PETITION_ID = $1;'''
                 comments = await self.db.select_query(query, petition_id)
                 output_comments = [Comment(date=c["submission_time"].strftime('%d.%m.%Y %H:%M'), data=c["comment_description"]) for c in comments]
                 return output_comments
         
         # добавляем фотографии петиции
-        async def add_petition_photos(self, petition_id, photos):
-                folder_path = PHOTOS_DIRECTORY + f"{petition_id}"
-                os.mkdir(folder_path)
-                for p in photos:
-                        with open(PHOTOS_DIRECTORY + f'{petition_id}/{p.filename}', 'wb') as f:
-                                f.write(base64.b64decode(p.content))
-
-                query = '''INSERT INTO PHOTO_FOLDER (PETITION_ID, FOLDER_PATH) VALUES ($1, $2);'''
-                await self.db.exec_query(query, petition_id, folder_path)
+        async def add_petition_photos(self, petition_id: int, petition: NewPetition):
+                await self.media_manager.add_petition_photos(petition_id, petition)
 
         # получаем фотографии петиции
-        async def get_petition_photos(self, petition_id):
-                photos = []
-                query = f'''SELECT FOLDER_PATH FROM PHOTO_FOLDER WHERE PETITION_ID = $1;'''
-                try:
-                        folder_path = (await self.db.select_one(query, petition_id))["folder_path"]
-                        for filename in os.listdir(folder_path):
-                                file_path = os.path.join(folder_path, filename)
-                                photos.append('http://127.0.0.1:8002/images/' +file_path)
-                except TypeError:
-                        pass
-                return photos
+        async def get_petition_photos(self, petition_id: int):
+                return await self.media_manager.get_petition_photos(petition_id)
         
 petition_manager = PetitionManager(db)

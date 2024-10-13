@@ -29,7 +29,7 @@ class PetitionStatus(BaseModel):
 
 class Like(BaseModel):
     petition_id: int = None
-    user_email: str
+    user_email: EmailStr
 
 class City(BaseModel):
     region: str

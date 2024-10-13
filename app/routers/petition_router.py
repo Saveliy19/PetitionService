@@ -21,7 +21,7 @@ async def make_petition(petition: NewPetition):
     try:
         petition_id = await petition_manager.add_new_petition(petition)
         if petition.photos:
-            await petition_manager.add_petition_photos(petition_id, petition.photos)
+            await petition_manager.add_petition_photos(petition_id, petition)
             return JSONResponse(content = petition_id)
     except Exception as e:
         logger.error("Ошибка при создании петиции", exc_info=e)

@@ -22,9 +22,10 @@ class LikeManager:
         return IsLiked(is_liked = result)
 
     async def like_petition(self, like: Like):
-        existing_like = self.check_user_like(like)
-
-        if not existing_like:
-                self._insert_like(like)
+        existing_like = await self.check_user_like(like)
+        if not existing_like.is_liked:
+            await self._insert_like(like)
+            return IsLiked(is_liked=True)
         else:
-                self._delete_like(like)
+            await self._delete_like(like)
+            return IsLiked(is_liked=False)
