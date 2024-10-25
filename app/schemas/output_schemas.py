@@ -71,3 +71,6 @@ class PetitionWithHeader(BaseModel):
 
 class AdminPetition(PetitionWithHeader):
     type: str
+
+class Id(BaseModel):
+    id: int

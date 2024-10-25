@@ -11,7 +11,7 @@ class NewPetition(BaseModel):
     is_initiative: bool
     category: str
     petition_description: str
-    petitioner_email: str
+    petitioner_email: EmailStr
     address: str
     header: str
     region: str

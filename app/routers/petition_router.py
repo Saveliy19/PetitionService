@@ -7,8 +7,8 @@ from typing import List
 
 from app.logger import logger
 
-from app.schemas import (NewPetition, PetitionStatus, CityWithType, City,
-                         PetitionWithHeader, PetitionData, Email, AdminPetition, Petitioners)
+from app.schemas import (NewPetition, PetitionStatus, CityWithType, City, Id,
+                         PetitionWithHeader, PetitionData, Email, Petitioners, AdminPetition)
 
 petition_router = APIRouter()
 
@@ -16,13 +16,13 @@ from app.managers import petition_manager
 
 from fastapi_cache.decorator import cache
 
-@petition_router.post("/", status_code=status.HTTP_201_CREATED)
+@petition_router.post("/", response_model=Id, status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
     try:
         petition_id = await petition_manager.add_new_petition(petition)
         if petition.photos:
             await petition_manager.add_petition_photos(petition_id, petition)
-            return JSONResponse(content = petition_id)
+        return petition_id
     except Exception as e:
         logger.error("Ошибка при создании петиции", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -49,7 +49,7 @@ async def update_petition_status(id: int, petition: PetitionStatus = Depends()):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @petition_router.get("/user/{email}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
-@cache(expire=60)
+@cache(expire=5)
 async def get_petitions(email: Email = Depends()):
     try:
         petitions = await petition_manager.get_petitions_by_email(email.email)
@@ -61,7 +61,7 @@ async def get_petitions(email: Email = Depends()):
 
 # маршрут для получения списка заявок по названию города
 @petition_router.get("/{region}/{name}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
-@cache(expire=60)
+@cache(expire=30)
 async def get_city_petitions(city: CityWithType = Depends()):
     try:
         petitions = await petition_manager.get_city_petitions(city)
@@ -73,7 +73,7 @@ async def get_city_petitions(city: CityWithType = Depends()):
 
 # маршрут для получения заявок, с которыми может работать админ
 @petition_router.get("/admin/{region}/{name}", response_model=List[AdminPetition], status_code=status.HTTP_200_OK)
-@cache(expire=60)
+@cache(expire=15)
 async def get_admins_city_petitions(city: City = Depends()):
     try:
         petitions = await petition_manager.get_admin_petitions(city)
@@ -85,7 +85,7 @@ async def get_admins_city_petitions(city: City = Depends()):
 
 # маршрут для получения полных данных по заявке
 @petition_router.get('/{id}', response_model=PetitionData, status_code=status.HTTP_200_OK)
-@cache(expire=60)
+@cache(expire=15)
 async def get_petition_data(id: int):
     try:
         existing_petition = await petition_manager.check_existance(id)

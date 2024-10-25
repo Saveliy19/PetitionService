@@ -11,8 +11,8 @@ from .media_manager import MediaManager
 
 from app.schemas import (
                         PetitionStatus, NewPetition, Like, PetitionWithHeader, 
-                        City, CityWithType, AdminPetition, Comment,
-                        PetitionData, Petitioners
+                        City, CityWithType, Comment, Id,
+                        PetitionData, Petitioners, AdminPetition
                        )
 
 class PetitionManager:
@@ -45,7 +45,8 @@ class PetitionManager:
                                                                         petition.header,
                                                                         petition.region,
                                                                         petition.city_name)
-                        return {"petition_id": f"{petition_id}"}
+                        return Id(id=petition_id)
+
                 except Exception as e:
                         logger.error("Ошибка при создании петиции", exc_info=e)
                         raise e
@@ -118,6 +119,9 @@ class PetitionManager:
 
         async def like_petition(self, like: Like):
                 return await self.like_manager.like_petition(like)
+        
+        async def dislike_petition(self, like: Like):
+                return await self.like_manager.delete_like(like)
 
         # получаем список петиций пользователя по его email
         async def get_petitions_by_email(self, email):

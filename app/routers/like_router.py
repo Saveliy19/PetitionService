@@ -9,7 +9,7 @@ from app import logger
 
 like_router = APIRouter()
 
-@like_router.put("/{petition_id}", response_model=IsLiked, status_code=status.HTTP_200_OK)
+@like_router.put("/{petition_id}", response_model=IsLiked, status_code=status.HTTP_201_CREATED)
 async def like_petition(petition_id: int, like: Like):
     try:
         like.petition_id = petition_id
@@ -18,6 +18,17 @@ async def like_petition(petition_id: int, like: Like):
         return await petition_manager.like_petition(like)
     except Exception as e:
         logger.error(f"Ошибка при установке лайка на заявку {like.petition_id} от {like.user_email}", exc_info=e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@like_router.delete("/{petition_id}", response_model=IsLiked, status_code=status.HTTP_200_OK)
+async def dislike_petition(petition_id: int, like: Like):
+    try:
+        like.petition_id = petition_id
+        if not await petition_manager.check_existance(like.petition_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return await petition_manager.dislike_petition(like)
+    except Exception as e:
+        logger.error(f"Ошибка при отмене лайка на заявку {like.petition_id} от {like.user_email}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @like_router.get("/{petition_id}/{user_email}", response_model=IsLiked, status_code=status.HTTP_200_OK)
