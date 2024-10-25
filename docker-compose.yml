@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  pg_db:
+    image: postgres:17
+    container_name: pg_db_container
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
+    networks:
+      - petition_service_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+
+  cache_db:
+    image: redis:7.4
+    container_name: redis_container
+    env_file:
+      - .env
+    networks:
+      - petition_service_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  petition_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petition_service_container
+    env_file:
+      - .env
+    networks:
+      - petition_service_net
+    ports:
+      - 8000:8000
+    volumes:
+      - ./petition_service.log:/petition_service/app.log
+      - ./photos:${PHOTOS_DIRECTORY}
+    depends_on:
+      pg_db:
+        condition: service_healthy
+      cache_db:
+        condition: service_healthy
+
+networks:
+  petition_service_net:
+    name: petition_service_net
+
+volumes:
+  postgres_volume:
+    name: postgres_volume
