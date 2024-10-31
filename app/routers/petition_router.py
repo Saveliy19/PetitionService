@@ -10,6 +10,11 @@ from app.logger import logger
 from app.schemas import (NewPetition, PetitionStatus, CityWithType, City, Id,
                          PetitionWithHeader, PetitionData, Email, Petitioners, AdminPetition)
 
+from prometheus_client import Counter
+petition_counter = Counter("created_petitions_total", "Total number of created petitions")
+initiative_counter = Counter("created_initiatives_total", "Total number of created initiatives")
+
+
 petition_router = APIRouter()
 
 from app.managers import petition_manager
@@ -22,6 +27,10 @@ async def make_petition(petition: NewPetition):
         petition_id = await petition_manager.add_new_petition(petition)
         if petition.photos:
             await petition_manager.add_petition_photos(petition_id, petition)
+        if petition.is_initiative:
+            initiative_counter.inc()
+        else:
+            petition_counter.inc()
         return petition_id
     except Exception as e:
         logger.error("Ошибка при создании петиции", exc_info=e)

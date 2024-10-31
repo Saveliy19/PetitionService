@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from app import statistics_router, petition_router, like_router
 from starlette.requests import Request
+
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
+from prometheus_fastapi_instrumentator import Instrumentator
+
 import time
 
 from .config import settings
@@ -40,4 +45,9 @@ app.include_router(like_router,
                    prefix="/like",
                    tags=["Лайки"])
 
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
+@app.get("/metrics")
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

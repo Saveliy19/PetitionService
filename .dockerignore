@@ -29,3 +29,4 @@ dist/
 *.egg-info/
 
 photos
+prometheus.yml

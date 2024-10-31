@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'petition_service'
+    static_configs:
+      - targets: ['petition_service:8000']
