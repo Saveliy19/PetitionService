@@ -1,0 +1,859 @@
+openapi: 3.1.0
+info:
+  title: FastAPI
+  version: 0.1.0
+paths:
+  /petitions/:
+    post:
+      tags:
+        - Петиции
+      summary: Make Petition
+      operationId: make_petition_petitions__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPetition'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/{id}/status:
+    patch:
+      tags:
+        - Петиции
+      summary: Update Petition Status
+      operationId: update_petition_status_petitions__id__status_patch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Id
+        - name: admin_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Admin Id
+        - name: admin_city
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Admin City
+        - name: admin_region
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Admin Region
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Status
+        - name: comment
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Comment
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Petitioners'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/user/{email}:
+    get:
+      tags:
+        - Петиции
+      summary: Get Petitions
+      operationId: get_petitions_petitions_user__email__get
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+            title: Email
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PetitionWithHeader'
+                title: Response Get Petitions Petitions User  Email  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/{region}/{name}:
+    get:
+      tags:
+        - Петиции
+      summary: Get City Petitions
+      operationId: get_city_petitions_petitions__region___name__get
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Region
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Name
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Limit
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Offset
+        - name: is_initiative
+          in: query
+          required: true
+          schema:
+            type: boolean
+            title: Is Initiative
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PetitionWithHeader'
+                title: Response Get City Petitions Petitions  Region   Name  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/admin/{region}/{name}:
+    get:
+      tags:
+        - Петиции
+      summary: Get Admins City Petitions
+      operationId: get_admins_city_petitions_petitions_admin__region___name__get
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Region
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Name
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Limit
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminPetition'
+                title: >-
+                  Response Get Admins City Petitions Petitions Admin  Region  
+                  Name  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/{id}:
+    get:
+      tags:
+        - Петиции
+      summary: Get Petition Data
+      operationId: get_petition_data_petitions__id__get
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetitionData'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /petitions/images/{image_path}:
+    get:
+      tags:
+        - Петиции
+      summary: Get Image
+      operationId: get_image_petitions_images__image_path__get
+      parameters:
+        - name: image_path
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Image Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /statistics/brief/{region_name}/{city_name}:
+    get:
+      tags:
+        - Статистика
+      summary: Get Brief Analysis
+      operationId: get_brief_analysis_statistics_brief__region_name___city_name__get
+      parameters:
+        - name: region
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Region
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Name
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Limit
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Offset
+        - name: start_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            title: Start Time
+        - name: end_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            title: End Time
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefAnalysis'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /statistics/detailed/{region_name}/{city_name}:
+    get:
+      tags:
+        - Статистика
+      summary: Get Detailed Analysis
+      operationId: get_detailed_analysis_statistics_detailed__region_name___city_name__get
+      parameters:
+        - name: region_name
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Region Name
+        - name: city_name
+          in: path
+          required: true
+          schema:
+            type: string
+            title: City Name
+        - name: start_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            title: Start Time
+        - name: end_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            title: End Time
+        - name: rows_count
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Rows Count
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullStatistics'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /like/{petition_id}:
+    put:
+      tags:
+        - Лайки
+      summary: Like Petition
+      operationId: like_petition_like__petition_id__put
+      parameters:
+        - name: petition_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Petition Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Like'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IsLiked'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+        - Лайки
+      summary: Dislike Petition
+      operationId: dislike_petition_like__petition_id__delete
+      parameters:
+        - name: petition_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Petition Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Like'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IsLiked'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /like/{petition_id}/{user_email}:
+    get:
+      tags:
+        - Лайки
+      summary: Check Like
+      operationId: check_like_like__petition_id___user_email__get
+      parameters:
+        - name: petition_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Petition Id
+        - name: user_email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+            title: User Email
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IsLiked'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AdminPetition:
+      properties:
+        id:
+          type: integer
+          title: Id
+        header:
+          type: string
+          title: Header
+        status:
+          type: string
+          title: Status
+        address:
+          type: string
+          title: Address
+        date:
+          type: string
+          title: Date
+        likes:
+          type: integer
+          title: Likes
+        type:
+          type: string
+          title: Type
+      type: object
+      required:
+        - id
+        - header
+        - status
+        - address
+        - date
+        - likes
+        - type
+      title: AdminPetition
+    BriefAnalysis:
+      properties:
+        most_popular_city_complaints:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular City Complaints
+        most_popular_city_initiatives:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular City Initiatives
+        most_popular_region_complaints:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular Region Complaints
+        most_popular_region_initiatives:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular Region Initiatives
+        city_complaints_count_per_status:
+          type: object
+          title: City Complaints Count Per Status
+        city_initiatives_count_per_status:
+          type: object
+          title: City Initiatives Count Per Status
+        region_complaints_count_per_status:
+          type: object
+          title: Region Complaints Count Per Status
+        region_initiatives_count_per_status:
+          type: object
+          title: Region Initiatives Count Per Status
+      type: object
+      required:
+        - most_popular_city_complaints
+        - most_popular_city_initiatives
+        - most_popular_region_complaints
+        - most_popular_region_initiatives
+        - city_complaints_count_per_status
+        - city_initiatives_count_per_status
+        - region_complaints_count_per_status
+        - region_initiatives_count_per_status
+      title: BriefAnalysis
+    Comment:
+      properties:
+        date:
+          type: string
+          title: Date
+        data:
+          type: string
+          title: Data
+      type: object
+      required:
+        - date
+        - data
+      title: Comment
+    FullStatistics:
+      properties:
+        complaints_count_per_category_city:
+          type: object
+          title: Complaints Count Per Category City
+        initiatives_count_per_category_city:
+          type: object
+          title: Initiatives Count Per Category City
+        avg_complaints_count_per_category_region:
+          type: object
+          title: Avg Complaints Count Per Category Region
+        avg_initiatives_count_per_category_region:
+          type: object
+          title: Avg Initiatives Count Per Category Region
+        city_initiatives_count_per_day:
+          type: object
+          title: City Initiatives Count Per Day
+        city_complaints_count_per_day:
+          type: object
+          title: City Complaints Count Per Day
+        most_popular_city_complaints:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular City Complaints
+        most_popular_city_initiatives:
+          items:
+            $ref: '#/components/schemas/Petition'
+          type: array
+          title: Most Popular City Initiatives
+      type: object
+      required:
+        - complaints_count_per_category_city
+        - initiatives_count_per_category_city
+        - avg_complaints_count_per_category_region
+        - avg_initiatives_count_per_category_region
+        - city_initiatives_count_per_day
+        - city_complaints_count_per_day
+        - most_popular_city_complaints
+        - most_popular_city_initiatives
+      title: FullStatistics
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Id:
+      properties:
+        id:
+          type: integer
+          title: Id
+      type: object
+      required:
+        - id
+      title: Id
+    IsLiked:
+      properties:
+        is_liked:
+          type: boolean
+          title: Is Liked
+      type: object
+      required:
+        - is_liked
+      title: IsLiked
+    Like:
+      properties:
+        petition_id:
+          type: integer
+          title: Petition Id
+        user_email:
+          type: string
+          format: email
+          title: User Email
+      type: object
+      required:
+        - user_email
+      title: Like
+    NewPetition:
+      properties:
+        is_initiative:
+          type: boolean
+          title: Is Initiative
+        category:
+          type: string
+          title: Category
+        petition_description:
+          type: string
+          title: Petition Description
+        petitioner_email:
+          type: string
+          format: email
+          title: Petitioner Email
+        address:
+          type: string
+          title: Address
+        header:
+          type: string
+          title: Header
+        region:
+          type: string
+          title: Region
+        city_name:
+          type: string
+          title: City Name
+        photos:
+          anyOf:
+            - items:
+                $ref: '#/components/schemas/Photo'
+              type: array
+            - type: 'null'
+          title: Photos
+      type: object
+      required:
+        - is_initiative
+        - category
+        - petition_description
+        - petitioner_email
+        - address
+        - header
+        - region
+        - city_name
+      title: NewPetition
+    Petition:
+      properties:
+        id:
+          type: integer
+          title: Id
+        header:
+          type: string
+          title: Header
+        category:
+          type: string
+          title: Category
+        date:
+          type: string
+          title: Date
+        like_count:
+          type: integer
+          title: Like Count
+      type: object
+      required:
+        - id
+        - header
+        - category
+        - date
+        - like_count
+      title: Petition
+    PetitionData:
+      properties:
+        id:
+          type: integer
+          title: Id
+        header:
+          type: string
+          title: Header
+        is_initiative:
+          type: boolean
+          title: Is Initiative
+        category:
+          type: string
+          title: Category
+        description:
+          type: string
+          title: Description
+        status:
+          type: string
+          title: Status
+        petitioner_email:
+          type: string
+          title: Petitioner Email
+        submission_time:
+          type: string
+          title: Submission Time
+        address:
+          type: string
+          title: Address
+        likes_count:
+          type: integer
+          title: Likes Count
+        region:
+          type: string
+          title: Region
+        city_name:
+          type: string
+          title: City Name
+        comments:
+          items:
+            $ref: '#/components/schemas/Comment'
+          type: array
+          title: Comments
+        photos:
+          items:
+            type: string
+          type: array
+          title: Photos
+      type: object
+      required:
+        - id
+        - header
+        - is_initiative
+        - category
+        - description
+        - status
+        - petitioner_email
+        - submission_time
+        - address
+        - likes_count
+        - region
+        - city_name
+        - comments
+        - photos
+      title: PetitionData
+    PetitionWithHeader:
+      properties:
+        id:
+          type: integer
+          title: Id
+        header:
+          type: string
+          title: Header
+        status:
+          type: string
+          title: Status
+        address:
+          type: string
+          title: Address
+        date:
+          type: string
+          title: Date
+        likes:
+          type: integer
+          title: Likes
+      type: object
+      required:
+        - id
+        - header
+        - status
+        - address
+        - date
+        - likes
+      title: PetitionWithHeader
+    Petitioners:
+      properties:
+        petitioners_emails:
+          items:
+            type: string
+            format: email
+          type: array
+          title: Petitioners Emails
+      type: object
+      required:
+        - petitioners_emails
+      title: Petitioners
+    Photo:
+      properties:
+        filename:
+          type: string
+          title: Filename
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+        - filename
+        - content
+      title: Photo
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
