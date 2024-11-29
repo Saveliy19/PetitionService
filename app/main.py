@@ -6,6 +6,8 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette.responses import Response
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.tracing import setup_tracing, instrument_app
+
 import time
 
 from .config import settings
@@ -21,7 +23,12 @@ async def lifespan(app: FastAPI):
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
     yield
 
+tracer = setup_tracing()
+
 app = FastAPI(lifespan=lifespan)
+
+instrument_app(app)
+
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):

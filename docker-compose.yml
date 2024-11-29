@@ -1,9 +1,9 @@
-version: '3.8'
-
 services:
   pg_db:
     image: postgres:17
     container_name: pg_db_container
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword  # Задайте пароль
     volumes:
       - postgres_volume:/var/lib/postgresql/data
       - ./init_db:/docker-entrypoint-initdb.d
@@ -58,23 +58,12 @@ services:
     ports:
       - "9090:9090"
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    networks:
-      - petition_service_net
-    ports:
-      - "3000:3000"
-    volumes:  # Добавляем volume для Grafana
-      - grafana_data:/var/lib/grafana  # Сохраняем данные Grafana
-    depends_on:
-      - prometheus
-
 networks:
   petition_service_net:
-    name: petition_service_net
+    external: true
+
+
 
 volumes:
   postgres_volume:
     name: postgres_volume
-  grafana_data:  # Определяем volume для Grafana
