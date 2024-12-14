@@ -49,6 +49,9 @@ jobs:
       - name: Run Docker Compose
         run: docker-compose up -d
 
+      - name: View logs of petition_service container
+        run: docker logs petition_service_container
+
       - name: Test the application
         run: curl http://localhost:8000
 
