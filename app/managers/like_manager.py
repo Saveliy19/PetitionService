@@ -1,5 +1,6 @@
 from app.schemas import Like, IsLiked
 
+
 class LikeManager:
     def __init__(self, db):
         self.db = db
@@ -21,4 +22,4 @@ class LikeManager:
         existing_like = await self.db.select_one(query, like.petition_id, like.user_email)
         if not existing_like:
             result = False
-        return IsLiked(is_liked = result)
+        return IsLiked(is_liked=result)

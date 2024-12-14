@@ -1,13 +1,12 @@
 from fastapi import Depends, APIRouter, HTTPException, status
-from fastapi_cache.decorator import cache
 
 from app.schemas import Like
 from app.managers import petition_manager
 from app.schemas import IsLiked
-
 from app import logger
 
 like_router = APIRouter()
+
 
 @like_router.put("/{petition_id}", response_model=IsLiked, status_code=status.HTTP_201_CREATED)
 async def like_petition(petition_id: int, like: Like):
@@ -19,7 +18,8 @@ async def like_petition(petition_id: int, like: Like):
     except Exception as e:
         logger.error(f"Ошибка при установке лайка на заявку {like.petition_id} от {like.user_email}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
 @like_router.delete("/{petition_id}", response_model=IsLiked, status_code=status.HTTP_200_OK)
 async def dislike_petition(petition_id: int, like: Like):
     try:
@@ -30,9 +30,10 @@ async def dislike_petition(petition_id: int, like: Like):
     except Exception as e:
         logger.error(f"Ошибка при отмене лайка на заявку {like.petition_id} от {like.user_email}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
 @like_router.get("/{petition_id}/{user_email}", response_model=IsLiked, status_code=status.HTTP_200_OK)
-#@cache(expire=10)
+# @cache(expire=10)
 async def check_like(like: Like = Depends()):
     try:
         if not await petition_manager.check_existance(like.petition_id):

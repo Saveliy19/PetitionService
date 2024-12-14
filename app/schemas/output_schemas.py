@@ -1,12 +1,14 @@
 from pydantic import BaseModel, EmailStr
 from typing import Dict, List
 
+
 class Petition(BaseModel):
     id: int
     header: str
     category: str
     date: str
     like_count: int
+
 
 class FullStatistics(BaseModel):
     complaints_count_per_category_city: Dict
@@ -29,8 +31,10 @@ class BriefAnalysis(BaseModel):
     region_complaints_count_per_status: Dict
     region_initiatives_count_per_status: Dict
 
+
 class IsLiked(BaseModel):
     is_liked: bool
+
 
 class Emails(BaseModel):
     emails: List[EmailStr]
@@ -39,9 +43,11 @@ class Emails(BaseModel):
 class Petitioners(BaseModel):
     petitioners_emails: List[EmailStr]
 
+
 class Comment(BaseModel):
     date: str
     data: str
+
 
 class PetitionData(BaseModel):
     id: int
@@ -69,8 +75,10 @@ class PetitionWithHeader(BaseModel):
     date: str
     likes: int
 
+
 class AdminPetition(PetitionWithHeader):
     type: str
+
 
 class Id(BaseModel):
     id: int

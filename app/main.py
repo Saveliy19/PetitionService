@@ -17,6 +17,7 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 from contextlib import asynccontextmanager
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis = await aioredis.from_url(f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}")
@@ -39,7 +40,6 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-
 app.include_router(petition_router,
                    prefix="/petitions",
                    tags=["Петиции"])
@@ -54,6 +54,7 @@ app.include_router(like_router,
 
 instrumentator = Instrumentator()
 instrumentator.instrument(app).expose(app)
+
 
 @app.get("/metrics")
 async def metrics():

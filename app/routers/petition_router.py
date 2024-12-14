@@ -1,7 +1,7 @@
 import asyncio
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 
 from typing import List
 
@@ -11,15 +11,17 @@ from app.schemas import (NewPetition, PetitionStatus, CityWithType, City, Id,
                          PetitionWithHeader, PetitionData, Email, Petitioners, AdminPetition)
 
 from prometheus_client import Counter
+
+from app.managers import petition_manager
+
+from fastapi_cache.decorator import cache
+
 petition_counter = Counter("created_petitions_total", "Total number of created petitions")
 initiative_counter = Counter("created_initiatives_total", "Total number of created initiatives")
 
 
 petition_router = APIRouter()
 
-from app.managers import petition_manager
-
-from fastapi_cache.decorator import cache
 
 @petition_router.post("/", response_model=Id, status_code=status.HTTP_201_CREATED)
 async def make_petition(petition: NewPetition):
@@ -36,26 +38,31 @@ async def make_petition(petition: NewPetition):
         logger.error("Ошибка при создании петиции", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@petition_router.patch("/{id}/status", response_model = Petitioners, status_code=status.HTTP_200_OK)
+
+@petition_router.patch("/{id}/status", response_model=Petitioners, status_code=status.HTTP_200_OK)
 async def update_petition_status(id: int, petition: PetitionStatus = Depends()):
     try:
         petition.id = id
         if not (await petition_manager.check_existance(petition.id)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        
+
         if not (await petition_manager.check_city_by_petition_id(petition)):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='The admin does not have rights to this city')
-        result, petitioner_emails = await asyncio.gather(petition_manager.update_petition_status(petition),
-                                                        petition_manager.get_petitioners_email(petition))
+        result, petitioner_emails = await asyncio.gather(
+            petition_manager.update_petition_status(petition),
+            petition_manager.get_petitioners_email(petition)
+        )
+
         if result:
             return petitioner_emails
         else:
-            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Ошибка при обновлении статуса петиции", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @petition_router.get("/user/{email}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
 @cache(expire=5)
@@ -66,7 +73,7 @@ async def get_petitions(email: Email = Depends()):
     except Exception as e:
         logger.error(f"Ошибка при получении заявок пользователя {email.email}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 
 # маршрут для получения списка заявок по названию города
 @petition_router.get("/{region}/{name}", response_model=List[PetitionWithHeader], status_code=status.HTTP_200_OK)
@@ -76,9 +83,9 @@ async def get_city_petitions(city: CityWithType = Depends()):
         petitions = await petition_manager.get_city_petitions(city)
         return petitions
     except Exception as e:
-       logger.error(f"Ошибка при получении заявок города {city.region} {city.name}", exc_info=e)
-       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        logger.error(f"Ошибка при получении заявок города {city.region} {city.name}", exc_info=e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # маршрут для получения заявок, с которыми может работать админ
 @petition_router.get("/admin/{region}/{name}", response_model=List[AdminPetition], status_code=status.HTTP_200_OK)
@@ -90,7 +97,7 @@ async def get_admins_city_petitions(city: City = Depends()):
     except Exception as e:
         logger.error(f"Ошибка при получении заявок города доступных админу {city.region} {city.name}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 
 # маршрут для получения полных данных по заявке
 @petition_router.get('/{id}', response_model=PetitionData, status_code=status.HTTP_200_OK)
@@ -105,8 +112,8 @@ async def get_petition_data(id: int):
     except Exception as e:
         logger.error(f"Ошибка при получении данных заявки {id}", exc_info=e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    
+
+
 @petition_router.get("/images/{image_path:path}")
 @cache(expire=30*60)
 async def get_image(image_path: str):
