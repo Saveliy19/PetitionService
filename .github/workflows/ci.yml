@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Copy .env file
+        run: cp ./.env .
+
+
       - name: Checkout code
         uses: actions/checkout@v2
 

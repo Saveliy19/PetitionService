@@ -41,6 +41,7 @@ services:
       - 8000:8000
     volumes:
       - ./petition_service.log:/petition_service/app.log
+      - ./photos:${PHOTOS_DIRECTORY}
     depends_on:
       pg_db:
         condition: service_healthy
@@ -60,6 +61,8 @@ services:
 networks:
   petition_service_net:
     external: true
+
+
 
 volumes:
   postgres_volume:
