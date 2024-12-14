@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Copy .env file
-        run: cp ../.env .
+        run: cp ../../.env .
 
 
       - name: Checkout code
