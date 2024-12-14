@@ -3,7 +3,7 @@ services:
     image: postgres:17
     container_name: pg_db_container
     environment:
-      - POSTGRES_PASSWORD=saveliy
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_volume:/var/lib/postgresql/data
       - ./init_db:/docker-entrypoint-initdb.d
@@ -32,14 +32,14 @@ services:
       dockerfile: Dockerfile
     container_name: petition_service_container
     environment:
-      - DB_HOST={DB_HOST}
-      - PORT={DB_PORT}
-      - POSTGRES_USER={POSTGRES_USER}
-      - POSTGRES_DB={POSTGRES_DB}
+      - DB_HOST=${DB_HOST}
+      - PORT=${PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PHOTOS_DIRECTORY=${PHOTOS_DIRECTORY}
-      - REDIS_HOST={REDIS_HOST}
-      - REDIS_PORT={REDIS_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     networks:
       - petition_service_net
     ports:
@@ -63,8 +63,6 @@ services:
 networks:
   petition_service_net:
     external: true
-
-
 
 volumes:
   postgres_volume:
