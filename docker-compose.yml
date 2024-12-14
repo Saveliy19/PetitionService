@@ -36,11 +36,10 @@ services:
       - PORT={DB_PORT}
       - POSTGRES_USER={POSTGRES_USER}
       - POSTGRES_DB={POSTGRES_DB}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Используем переменную из окружения
-      - PHOTOS_DIRECTORY=${PHOTOS_DIRECTORY}  # Используем переменную из окружения
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PHOTOS_DIRECTORY=${PHOTOS_DIRECTORY}
       - REDIS_HOST={REDIS_HOST}
       - REDIS_PORT={REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}  # Используем переменную и
     networks:
       - petition_service_net
     ports:
