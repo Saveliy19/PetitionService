@@ -27,6 +27,7 @@ services:
       retries: 5
 
   petition_service:
+    image: ${{ secrets.DOCKER_USERNAME }}/petition_service_image:latest
     container_name: petition_service_container
     environment:
       - DB_HOST=${DB_HOST}
